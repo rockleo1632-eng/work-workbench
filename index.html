@@ -778,7 +778,6 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           导入恢复
         </button>
         <input type="file" id="importFile" accept="application/json,.json" hidden>
-        <button class="btn danger" id="clearDemoBtn">清空示例</button>
       </div>
     </div>
 
@@ -1019,18 +1018,6 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       </section>
     </div>
   </main>
-</div>
-
-<!-- 清空示例确认弹窗 -->
-<div class="modal" id="clearModal">
-  <div class="modal-box">
-    <h3>清空示例数据</h3>
-    <p>将删除系统预置的示例任务和知识条目，你自行添加的数据不会被影响。确定继续？</p>
-    <div class="modal-actions">
-      <button class="btn ghost" id="clearCancel">取消</button>
-      <button class="btn danger" id="clearConfirm">确认清空</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -2483,15 +2470,6 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     reader.readAsText(file);
   }
 
-  /* ---------- 清空示例 ---------- */
-  function clearDemo(){
-    var tasks = lsGet("tasks", []).filter(function(x){ return !x.isDemo; });
-    var kb = lsGet("kb", []).filter(function(x){ return !x.isDemo; });
-    lsSet("tasks", tasks);
-    lsSet("kb", kb);
-    renderAll();
-  }
-
   /* ---------- 数据提示 ---------- */
   function checkDataTip(){
     var tip = $("#dataTip");
@@ -2548,13 +2526,6 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $("#exportBtn").addEventListener("click", doExport);
     $("#importBtn").addEventListener("click", function(){ $("#importFile").click(); });
     $("#importFile").addEventListener("change", doImport);
-    // 清空示例
-    $("#clearDemoBtn").addEventListener("click", function(){ $("#clearModal").classList.add("show"); });
-    $("#clearCancel").addEventListener("click", function(){ $("#clearModal").classList.remove("show"); });
-    $("#clearConfirm").addEventListener("click", function(){
-      clearDemo();
-      $("#clearModal").classList.remove("show");
-    });
     $("#dataTipBtn").addEventListener("click", doExport);
     bindSyncUI();
   }
