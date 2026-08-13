@@ -1161,11 +1161,20 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       if(!t){ alert("请先粘贴 GitHub Token"); return; }
       lsSet("github_token", t);
       lsSet("github_sync_on", true);
-      setSyncStatus("已开启，正在首次同步…");
-      ghSave().then(function(){ setSyncStatus("已同步 ✓"); }).catch(function(){});
+      setSyncStatus("已开启，正在从云端拉取数据…");
+      ghLoad().then(function(ok){
+        if(ok){ renderAll(); setSyncStatus("已同步 ✓（已从云端获取最新数据）"); }
+        else { setSyncStatus("已开启，云端暂无数据，后续改动会自动上传"); }
+      }).catch(function(){ setSyncStatus("拉取失败，请检查 Token 权限", true); });
     }); }
     var nowBtn = $("#syncNow");
-    if(nowBtn){ nowBtn.addEventListener("click", function(){ ghSave().then(function(){ setSyncStatus("已同步 ✓"); }).catch(function(){}); }); }
+    if(nowBtn){ nowBtn.addEventListener("click", function(){
+      setSyncStatus("正在从云端拉取最新…");
+      ghLoad().then(function(ok){
+        if(ok){ renderAll(); setSyncStatus("已同步 ✓"); }
+        else { setSyncStatus("云端暂无数据"); }
+      }).catch(function(){ setSyncStatus("拉取失败，请检查 Token 权限", true); });
+    }); }
     var disBtn = $("#syncDisable");
     if(disBtn){ disBtn.addEventListener("click", function(){ lsSet("github_sync_on", false); setSyncStatus("已关闭同步"); }); }
     var tok = lsGet("github_token", ""); if(tok && $("#syncToken")){ $("#syncToken").value = tok; }
