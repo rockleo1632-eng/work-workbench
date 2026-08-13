@@ -710,6 +710,23 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   .empty{font-size:13px!important;padding:18px 8px!important;}
   .list{gap:8px!important;}
 }
+  /* 云端同步面板 */
+  .sync-panel{ position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; }
+  .sync-card{ background:#fff; border-radius:16px; padding:22px; max-width:440px; width:100%; box-shadow:0 20px 60px rgba(2,32,71,.3); }
+  .sync-title{ font-size:17px; font-weight:700; color:#0e7490; margin-bottom:8px; }
+  .sync-desc{ font-size:13px; color:#64748b; line-height:1.6; margin:0 0 14px; }
+  .sync-desc code{ background:#f1f5f9; padding:1px 5px; border-radius:5px; font-size:12px; }
+  .sync-label{ display:block; font-size:13px; color:#334155; margin-bottom:6px; }
+  .sync-input{ width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box; margin-bottom:14px; }
+  .sync-btns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .sync-btns .btn{ flex:1; min-width:96px; }
+  .sync-status{ font-size:13px; color:#0e7490; margin-top:12px; min-height:18px; }
+  .sync-status.err{ color:#e11d48; }
+  .sync-foot{ margin-top:10px; text-align:right; }
+  .sync-close{ font-size:13px; color:#94a3b8; cursor:pointer; }
+  .sync-close:hover{ color:#475569; }
+  .btn.ghost{ background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+  @media (max-width:768px){ .sync-card{ padding:18px; } }
 </style>
 </head>
 <body>
@@ -748,6 +765,10 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
         <button id="dataTipBtn">去导出</button>
       </div>
       <div class="toolbar">
+        <button class="btn" id="syncOpen">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6 1.5A4 4 0 0 0 6 19h11.5z"/><path d="M12 12v6M9.5 14.5L12 12l2.5 2.5"/></svg>
+          云端同步
+        </button>
         <button class="btn primary" id="exportBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
           导出 JSON
@@ -1052,7 +1073,105 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   }
   function lsSet(k, v){
     try{ localStorage.setItem(PREFIX + k, JSON.stringify(v)); }catch(e){ alert("保存失败，可能本地存储空间不足"); }
+    if(k!=="github_token" && k!=="github_sync_on"){ schedulePush(); }
   }
+  /* ---------- 云端同步（GitHub 仓库存储，A 方案） ---------- */
+  var GH = { owner: "rockleo1632-eng", repo: "work-workbench", path: "workbench-data.json" };
+  var GH_API = "https://api.github.com/repos/" + GH.owner + "/" + GH.repo + "/contents/" + GH.path;
+  var SYNC_EXCLUDE = ["github_token", "github_sync_on"];
+  var pushTimer = null;
+
+  function b64encodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function b64decodeUnicode(str){ return decodeURIComponent(escape(atob(str))); }
+
+  function collectAll(){
+    var out = {};
+    for(var i=0;i<localStorage.length;i++){
+      var key = localStorage.key(i);
+      if(key && key.indexOf(PREFIX)===0){
+        var short = key.slice(PREFIX.length);
+        if(SYNC_EXCLUDE.indexOf(short)===-1){ out[key] = localStorage.getItem(key); }
+      }
+    }
+    return out;
+  }
+  function applyAll(obj){
+    if(!obj) return;
+    for(var key in obj){ if(Object.prototype.hasOwnProperty.call(obj, key)) localStorage.setItem(key, obj[key]); }
+  }
+  function ghGetSha(token){
+    return fetch(GH_API, { headers: { Authorization: "Bearer "+token, Accept: "application/vnd.github+json" } })
+      .then(function(r){ if(r.status===404) return null; if(!r.ok) throw new Error("getSha "+r.status); return r.json(); })
+      .then(function(j){ return (j && j.sha) ? j.sha : null; });
+  }
+  function ghLoad(){
+    var token = lsGet("github_token", "");
+    if(!token) return Promise.resolve(false);
+    setSyncStatus("从云端加载…");
+    return fetch(GH_API, { headers: { Authorization: "Bearer "+token, Accept: "application/vnd.github+json" } })
+      .then(function(r){ if(r.status===404) return null; if(!r.ok) throw new Error("load "+r.status); return r.json(); })
+      .then(function(j){
+        if(!j) return false;
+        try{ applyAll(JSON.parse(b64decodeUnicode(j.content))); }catch(e){ console.error("parse cloud data failed", e); }
+        return true;
+      });
+  }
+  function ghSave(){
+    return new Promise(function(resolve, reject){
+      var token = lsGet("github_token", "");
+      var on = lsGet("github_sync_on", false);
+      if(!token || !on){ resolve(); return; }
+      setSyncStatus("同步中…");
+      var content = b64encodeUnicode(JSON.stringify(collectAll()));
+      ghGetSha(token).then(function(sha){
+        var body = { message: "workbench sync " + new Date().toISOString(), content: content };
+        if(sha) body.sha = sha;
+        return fetch(GH_API, {
+          method: "PUT",
+          headers: { Authorization: "Bearer "+token, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        }).then(function(r){ if(!r.ok) throw new Error("save "+r.status); return r.json(); });
+      }).then(function(){ setSyncStatus("已同步 ✓"); resolve(); })
+        .catch(function(e){ console.error(e); setSyncStatus("同步失败", true); reject(e); });
+    });
+  }
+  function schedulePush(){
+    if(pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(function(){ ghSave().catch(function(){}); }, 1500);
+  }
+  function setSyncStatus(text, isErr){
+    var el = $("#syncStatus");
+    if(!el) return;
+    el.textContent = text || "";
+    el.className = "sync-status" + (isErr ? " err" : "");
+  }
+  function cloudBoot(done){
+    var token = lsGet("github_token", "");
+    var on = lsGet("github_sync_on", false);
+    if(!token || !on){ done(); return; }
+    ghLoad().then(function(){ done(); }).catch(function(e){ console.error(e); done(); });
+  }
+  function bindSyncUI(){
+    var panel = $("#syncPanel"), fab = $("#syncOpen");
+    if(fab){ fab.addEventListener("click", function(){ panel.style.display = (panel.style.display==="block") ? "none" : "block"; }); }
+    var closeBtn = $("#syncClose"); if(closeBtn){ closeBtn.addEventListener("click", function(){ panel.style.display = "none"; }); }
+    var enableBtn = $("#syncEnable");
+    if(enableBtn){ enableBtn.addEventListener("click", function(){
+      var t = $("#syncToken").value.trim();
+      if(!t){ alert("请先粘贴 GitHub Token"); return; }
+      lsSet("github_token", t);
+      lsSet("github_sync_on", true);
+      setSyncStatus("已开启，正在首次同步…");
+      ghSave().then(function(){ setSyncStatus("已同步 ✓"); }).catch(function(){});
+    }); }
+    var nowBtn = $("#syncNow");
+    if(nowBtn){ nowBtn.addEventListener("click", function(){ ghSave().then(function(){ setSyncStatus("已同步 ✓"); }).catch(function(){}); }); }
+    var disBtn = $("#syncDisable");
+    if(disBtn){ disBtn.addEventListener("click", function(){ lsSet("github_sync_on", false); setSyncStatus("已关闭同步"); }); }
+    var tok = lsGet("github_token", ""); if(tok && $("#syncToken")){ $("#syncToken").value = tok; }
+    setSyncStatus(lsGet("github_sync_on", false) ? "同步已开启" : "同步未开启");
+  }
+
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function todayStr(){
     var d = new Date();
@@ -2394,9 +2513,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 
   /* ---------- 初始化 ---------- */
   function init(){
-    seedIfEmpty();
-    renderAll();
-    initCal();
+    cloudBoot(function(){
+      seedIfEmpty();
+      renderAll();
+      initCal();
+    });
 
     // 页签
     $$(".sidenav-item").forEach(function(b){
@@ -2426,6 +2547,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       $("#clearModal").classList.remove("show");
     });
     $("#dataTipBtn").addEventListener("click", doExport);
+    bindSyncUI();
   }
 
   if(document.readyState === "loading"){
@@ -2449,5 +2571,21 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     <div class="share-canvas-wrap" id="shareCanvasWrap"></div>
   </div>
 </div>
+  <!-- 云端同步面板 -->
+  <div id="syncPanel" class="sync-panel" style="display:none;">
+    <div class="sync-card">
+      <div class="sync-title">☁ 云端同步（GitHub 仓库）</div>
+      <p class="sync-desc">数据保存到你的仓库 <code>rockleo1632-eng/work-workbench</code> 的 <code>workbench-data.json</code>。Token 仅存于本机浏览器，不会上传第三方。</p>
+      <label class="sync-label">GitHub Token（需 repo 权限）</label>
+      <input id="syncToken" class="sync-input" type="password" placeholder="ghp_..." autocomplete="off" />
+      <div class="sync-btns">
+        <button id="syncEnable" class="btn primary">开启并保存</button>
+        <button id="syncNow" class="btn">立即同步</button>
+        <button id="syncDisable" class="btn ghost">关闭同步</button>
+      </div>
+      <div id="syncStatus" class="sync-status"></div>
+      <div class="sync-foot"><span id="syncClose" class="sync-close">关闭</span></div>
+    </div>
+  </div>
 </body>
 </html>
