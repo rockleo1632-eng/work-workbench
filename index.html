@@ -1063,7 +1063,9 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     if(k!=="github_token" && k!=="github_sync_on"){ schedulePush(); }
   }
   /* ---------- 云端同步（GitHub 仓库存储，A 方案） ---------- */
-  var GH = { owner: "rockleo1632-eng", repo: "work-workbench", path: "workbench-data.json" };
+  /* 站点仓库 work-workbench 为 public（Pages 需要），数据文件单独存于私有仓库 work-workbench-data，
+     仅有 Token 的用户可经 API 读写，外人无法读取，兼顾「站点可用 + 数据私密」。 */
+  var GH = { owner: "rockleo1632-eng", repo: "work-workbench-data", path: "workbench-data.json" };
   var GH_API = "https://api.github.com/repos/" + GH.owner + "/" + GH.repo + "/contents/" + GH.path;
   var SYNC_EXCLUDE = ["github_token", "github_sync_on"];
   var pushTimer = null;
