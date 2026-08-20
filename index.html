@@ -850,6 +850,16 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
                 </div>
               </div>
               <div class="form-row">
+                <div class="field" style="flex:1;min-width:140px;">
+                  <label>项目（周报主标题，如 P33项目管理）</label>
+                  <input type="text" id="taskProject" placeholder="留空则归入默认项目" maxlength="40">
+                </div>
+                <div class="field" style="flex:1;min-width:140px;">
+                  <label>业务板块（周报分组，如 首曝内容筹备）</label>
+                  <input type="text" id="taskBoard" placeholder="如 首曝内容筹备 / AI乐队" maxlength="20">
+                </div>
+              </div>
+              <div class="form-row">
                 <div class="field" style="flex:0 0 150px;">
                   <label>前置节点</label>
                   <input type="date" id="taskPre">
@@ -928,6 +938,16 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
                       <input type="date" id="calQDue">
                     </div>
                   </div>
+                  <div class="cq-row">
+                    <div class="field" style="flex:1;min-width:120px;">
+                      <label>项目</label>
+                      <input type="text" id="calQProject" placeholder="如 P33项目管理">
+                    </div>
+                    <div class="field" style="flex:1;min-width:120px;">
+                      <label>板块</label>
+                      <input type="text" id="calQBoard" placeholder="如 首曝内容筹备">
+                    </div>
+                  </div>
                   <div style="text-align:right;margin-top:8px;">
                     <button type="submit" class="btn primary btn-sm">添加</button>
                     <button type="button" class="btn ghost btn-sm" id="calQCancel">取消</button>
@@ -954,9 +974,13 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>
             周报
           </div>
-          <div class="mod-sub">自动按类别汇总本周完成、进行中、待处理任务，一键生成可复制的格式化周报。</div>
-          <div class="report-out">
-            <div class="report-actions">
+          <div class="mod-sub">按任务里的「项目 / 业务板块」自动汇总，一键生成「项目 → 板块 → 条目 + 下周待办」格式周报。添加任务时填好项目与板块即可。</div>
+      <div class="report-out">
+        <div class="wr-proj-row">
+          <label>周报主标题（项目名）</label>
+          <input id="reportProject" placeholder="如 P33项目管理（留空则自动取任务中的项目名，都为空时用「本周工作」）" />
+        </div>
+        <div class="report-actions">
               <button class="btn primary" id="reportGenBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
                 生成本周周报
@@ -1217,11 +1241,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       var pre = new Date(); pre.setDate(pre.getDate()-1);
       var preS = pre.getFullYear()+"-"+String(pre.getMonth()+1).padStart(2,"0")+"-"+String(pre.getDate()).padStart(2,"0");
       tasks = [
-        { id:uid(), title:"整理 Q3 项目复盘文档", cat:"专项", due:overdue, pre:preS, status:"not_started", note:"发给团队存档", created:t, doneAt:null, isDemo:true },
-        { id:uid(), title:"回复客户邮件（合同细节）", cat:"事件", due:t, pre:"", status:"not_started", note:"", created:t, doneAt:null, isDemo:true },
-        { id:uid(), title:"提交本周周报", cat:"专项", due:soonS, pre:preS, status:"not_started", note:"", created:t, doneAt:null, isDemo:true },
-        { id:uid(), title:"编写对外 API 文档", cat:"素材", due:soonS, pre:"", status:"in_progress", note:"进行中", created:t, doneAt:null, isDemo:true },
-        { id:uid(), title:"准备公众号推文素材", cat:"传播", due:soonS, pre:preS, status:"not_started", note:"需要设计配图", created:t, doneAt:null, isDemo:true }
+        { id:uid(), title:"整理 Q3 项目复盘文档", cat:"专项", project:"P33项目管理", board:"专项统筹", due:overdue, pre:preS, status:"not_started", note:"发给团队存档", created:t, doneAt:null, isDemo:true },
+        { id:uid(), title:"回复客户邮件（合同细节）", cat:"事件", project:"P33项目管理", board:"事件", due:t, pre:"", status:"not_started", note:"", created:t, doneAt:null, isDemo:true },
+        { id:uid(), title:"提交本周周报", cat:"专项", project:"P33项目管理", board:"专项统筹", due:soonS, pre:preS, status:"not_started", note:"", created:t, doneAt:null, isDemo:true },
+        { id:uid(), title:"编写对外 API 文档", cat:"素材", project:"P33项目管理", board:"素材筹备", due:soonS, pre:"", status:"in_progress", note:"进行中", created:t, doneAt:null, isDemo:true },
+        { id:uid(), title:"准备公众号推文素材", cat:"传播", project:"P33项目管理", board:"传播", due:soonS, pre:preS, status:"not_started", note:"需要设计配图", created:t, doneAt:null, isDemo:true }
       ];
       lsSet("tasks", tasks);
     }
@@ -1255,6 +1279,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $("#taskEditId").value = "";
     $("#taskCat").value = "专项";
     $("#customCatRow").classList.remove("show");
+    $("#taskProject").value = "";
+    $("#taskBoard").value = "";
     // 不改变按钮文字（保持"确认添加"）
   }
 
@@ -1400,6 +1426,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           + (preTxt ? '<span>'+preTxt+'</span>' : '')
           + '<span>'+dueTxt+'</span>'
           + (x.note ? '<span>&#128221; '+escapeHtml(x.note)+'</span>' : '')
+          + (x.project ? '<span class="t-prj">'+escapeHtml(x.project)+'</span>' : '')
+          + (x.board ? '<span class="t-board">'+escapeHtml(x.board)+'</span>' : '')
           + '</div>'
           /* 就地编辑区域（默认隐藏）*/
           + '<div class="inline-edit" id="ie-'+x.id+'">'
@@ -1416,6 +1444,10 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           + '<div class="field" style="flex:0 0 140px;"><label>前置节点</label><input type="date" id="iep-'+x.id+'" value="'+(x.pre||'')+'"></div>'
           + '<div class="field" style="flex:0 0 140px;"><label>截止日期</label><input type="date" id="ied-'+x.id+'" value="'+(x.due||'')+'"></div>'
           + '<div class="field" style="flex:2;"><label>备注</label><input type="text" id="ien-'+x.id+'" value="'+escapeHtml(x.note||'')+'" placeholder="可选"></div>'
+          + '</div>'
+          + '<div class="ie-row">'
+          + '<div class="field" style="flex:1;"><label>项目</label><input type="text" id="ieprj-'+x.id+'" value="'+escapeHtml(x.project||'')+'"></div>'
+          + '<div class="field" style="flex:1;"><label>板块</label><input type="text" id="ieb-'+x.id+'" value="'+escapeHtml(x.board||'')+'"></div>'
           + '</div>'
           + '<div class="ie-actions">'
           + '<button class="btn primary btn-sm" data-ie-save="'+x.id+'">保存</button>'
@@ -1519,6 +1551,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           $("#ied-"+id).value = tk.due || "";
           $("#iep-"+id).value = tk.pre || "";
           $("#ien-"+id).value = tk.note || "";
+          $("#ieprj-"+id).value = tk.project || "";
+          $("#ieb-"+id).value = tk.board || "";
         }
       });
     });
@@ -1540,6 +1574,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
         x.pre = $("#iep-"+id).value || "";
         x.due = $("#ied-"+id).value || "";
         x.note = $("#ien-"+id).value.trim();
+        x.project = $("#ieprj-"+id).value.trim();
+        x.board = $("#ieb-"+id).value.trim();
       }
       return x;
     });
@@ -1581,6 +1617,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var data = {
       title: title,
       cat: cat,
+      project: $("#taskProject").value.trim(),
+      board: $("#taskBoard").value.trim(),
       pre: $("#taskPre").value || "",
       due: $("#taskDue").value || "",
       note: $("#taskNote").value.trim(),
@@ -1786,6 +1824,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       var data = {
         id: uid(), title:title,
         cat: $("#calQCat").value || "专项",
+        project:$("#calQProject").value.trim(), board:$("#calQBoard").value.trim(),
         pre:$("#calQPre").value || "", due:$("#calQDue").value || $("#calQDate").value || "",
         note:"", status:"not_started",
         created:todayStr(), doneAt:null, isDemo:false
@@ -2211,16 +2250,16 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     });
   }
 
-  /* ---------- 周报（自动按任务汇总，纯文本符号，不用HTML实体）---------- */
+  /* ---------- 周报（按 项目 → 板块 → 条目 + 下周待办 自动汇总）---------- */
   function genReport(){
     var tasks = lsGet("tasks", []);
     var t = todayStr();
     var d = parseDate(t);
-    var monday = new Date(d);
-    monday.setDate(d.getDate() - ((d.getDay()+6)%7));
+    var monday = new Date(d); monday.setDate(d.getDate() - ((d.getDay()+6)%7));
     var sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
     var nextMon = new Date(sunday); nextMon.setDate(sunday.getDate()+1);
     var nextSun = new Date(nextMon); nextSun.setDate(nextMon.getDate()+6);
+    var wEnd = sunday;
 
     function inRange(dateStr, start, end){
       if(!dateStr) return false;
@@ -2228,85 +2267,50 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       return dt >= start && dt <= end;
     }
 
-    var doneList = tasks.filter(function(x){ return x.status==="done" && x.doneAt && inRange(x.doneAt, monday, sunday); });
-    var doingList = tasks.filter(function(x){ return x.status==="in_progress"; });
-    var pendingList = tasks.filter(function(x){ return x.status!=="done" && x.status!=="paused" && x.due && inRange(x.due, monday, sunday); });
-    var nextList = tasks.filter(function(x){ return x.status!=="done" && x.status!=="paused" && x.due && inRange(x.due, nextMon, nextSun); });
+    // 本周相关任务：本周完成 / 进行中 / 本周内截止的未完成任务
+    var weekTasks = tasks.filter(function(x){
+      if(x.status === "done") return x.doneAt && inRange(x.doneAt, monday, sunday);
+      if(x.status === "in_progress") return true;
+      return x.due && parseDate(x.due) <= wEnd;
+    });
 
-    function groupByCat(arr){
-      var groups = {};
-      arr.forEach(function(x){
-        var c = x.cat || "未分类";
-        if(!groups[c]) groups[c] = [];
-        groups[c].push(x);
-      });
-      return groups;
+    // 下周待办：未完成且截止落在下周；排除已在本周板块里出现的（避免重复）
+    var inWeek = {};
+    weekTasks.forEach(function(x){ inWeek[x.id] = true; });
+    var nextList = tasks.filter(function(x){
+      return x.status !== "done" && x.status !== "paused" && x.due && inRange(x.due, nextMon, nextSun);
+    }).filter(function(x){ return !inWeek[x.id]; });
+
+    // 项目主标题：周报页输入优先，否则取任务中出现最多的 project，再否则「本周工作」
+    var rp = ($("#reportProject").value || "").trim();
+    var projName = rp;
+    if(!projName){
+      var counts = {};
+      weekTasks.concat(nextList).forEach(function(x){ var p=(x.project||"").trim(); if(p) counts[p]=(counts[p]||0)+1; });
+      var max = 0;
+      Object.keys(counts).forEach(function(k){ if(counts[k] > max){ max = counts[k]; projName = k; } });
+      if(!projName) projName = "本周工作";
     }
+
+    // 板块：优先用 board 字段，空则回退 cat
+    function boardOf(x){ return ((x.board||"").trim()) || ((x.cat||"").trim()) || "其他"; }
+    var boardOrder = [], groups = {};
+    weekTasks.forEach(function(x){
+      var b = boardOf(x);
+      if(!groups[b]){ groups[b] = []; boardOrder.push(b); }
+      groups[b].push(x);
+    });
 
     var lines = [];
-    lines.push("[工作周报 " + fmtDate(monday.toISOString().slice(0,10)) + " ~ " + fmtDate(sunday.toISOString().slice(0,10)) + "]");
+    lines.push(projName + "：");
+    boardOrder.forEach(function(b){
+      lines.push(b + "：");
+      groups[b].forEach(function(x){ lines.push("- " + x.title); });
+    });
     lines.push("");
-
-    // 已完成
-    lines.push("[已完结]");
-    if(doneList.length === 0){
-      lines.push("  （暂无）");
-    } else {
-      var doneGroups = groupByCat(doneList);
-      Object.keys(doneGroups).forEach(function(cat){
-        lines.push("  > ["+cat+"] ("+doneGroups[cat].length+"项)");
-        doneGroups[cat].forEach(function(x){ lines.push("    - "+x.title); });
-      });
-    }
-    lines.push("");
-
-    // 进行中
-    lines.push("[进行中]");
-    if(doingList.length === 0){
-      lines.push("  （暂无）");
-    } else {
-      var doingGroups = groupByCat(doingList);
-      Object.keys(doingGroups).forEach(function(cat){
-        lines.push("  > ["+cat+"] ("+doingGroups[cat].length+"项)");
-        doingGroups[cat].forEach(function(x){
-          var info = [];
-          if(x.pre) info.push("前置:"+fmtDate(x.pre));
-          if(x.due) info.push("截止:"+fmtDate(x.due));
-          lines.push("    - "+x.title + (info.length ? " ("+info.join(", ")+")" : ""));
-        });
-      });
-    }
-    lines.push("");
-
-    // 待处理
-    lines.push("[待处理] (已逾期标 !!)");
-    if(pendingList.length === 0){
-      lines.push("  （暂无）");
-    } else {
-      var pendGroups = groupByCat(pendingList);
-      Object.keys(pendGroups).forEach(function(cat){
-        lines.push("  > ["+cat+"] ("+pendGroups[cat].length+"项)");
-        pendGroups[cat].forEach(function(x){
-          var overdue = x.due && x.due < t;
-          lines.push("    " + (overdue?"!! ":"- ") + x.title + (x.due ? " ("+fmtDate(x.due)+")" : ""));
-        });
-      });
-    }
-    lines.push("");
-
-    // 下周计划
-    lines.push("[下周计划]");
-    if(nextList.length === 0){
-      lines.push("  （暂无）");
-    } else {
-      var nextGroups = groupByCat(nextList);
-      Object.keys(nextGroups).forEach(function(cat){
-        lines.push("  > ["+cat+"] ("+nextGroups[cat].length+"项)");
-        nextGroups[cat].forEach(function(x){
-          lines.push("    - "+x.title + (x.due ? " ("+fmtDate(x.due)+")" : ""));
-        });
-      });
-    }
+    lines.push("下周待办：");
+    if(nextList.length === 0){ lines.push("- （暂无）"); }
+    else { nextList.forEach(function(x){ lines.push("- " + x.title); }); }
 
     $("#reportText").value = lines.join("\n");
   }
