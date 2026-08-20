@@ -537,21 +537,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   background-color:#fafdfe;
 }
 .report-actions{display:flex;gap:10px;flex-wrap:wrap;}
-/* 周报结构化编辑 */
-.wr-form{display:flex;flex-direction:column;gap:9px;}
-.wr-label{font-size:13px;color:#5b6b7b;font-weight:600;margin-top:4px;}
-.wr-input,.wr-sec-title,.wr-sec-body,.wr-ta{
-  width:100%;font-size:14px;padding:9px 12px;border-radius:10px;
-  border:1px solid #d8e2ea;background:#fff;color:#1f2a36;font-family:inherit;box-sizing:border-box;
-}
-.wr-input{min-height:40px;}
-.wr-sec{border:1px solid #e3ebf1;border-radius:12px;padding:10px;background:#f6fafc;display:flex;flex-direction:column;gap:8px;}
-.wr-sec-head{display:flex;gap:8px;align-items:center;}
-.wr-sec-title{flex:1;font-weight:600;}
-.wr-sec-del{border:none;background:#ffe9e9;color:#c0392b;border-radius:8px;width:32px;height:36px;cursor:pointer;font-size:14px;flex:0 0 auto;}
-.wr-sec-del:hover{background:#ffd9d9;}
-.wr-sec-body{min-height:84px;resize:vertical;line-height:1.7;}
-.wr-ta{min-height:96px;resize:vertical;line-height:1.7;}
+/* 周报：自动按任务汇总（不再需要 .wr-* 编辑器样式）*/
 .btn.ghost{background:#eef3f7;color:#41566a;}
 .btn.ghost:hover{background:#e2eaf1;}
 
@@ -968,23 +954,19 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>
             周报
           </div>
-          <div class="mod-sub">按「项目 → 板块 → 条目」结构填写，一键生成可复制的格式化周报（与示例格式一致）。</div>
+          <div class="mod-sub">自动按类别汇总本周完成、进行中、待处理任务，一键生成可复制的格式化周报。</div>
           <div class="report-out">
-            <div class="wr-form">
-              <label class="wr-label">项目名称（周报主标题）</label>
-              <input id="wrProject" class="wr-input" placeholder="如 P33项目管理" />
-              <label class="wr-label">板块（每个板块一行标题 + 多条进展）</label>
-              <div id="wrSections"></div>
-              <button class="btn ghost" id="wrAddSec" type="button">+ 添加板块</button>
-              <label class="wr-label" style="margin-top:6px">下周待办</label>
-              <textarea id="wrNext" class="wr-ta" placeholder="每行一条，如：&#10;谢君豪拍摄（时间待定）"></textarea>
-            </div>
             <div class="report-actions">
-              <button class="btn primary" id="reportGenBtn">生成周报文本</button>
-              <button class="btn" id="copyReportBtn">复制文本</button>
-              <button class="btn ghost" id="wrClear" type="button">清空</button>
+              <button class="btn primary" id="reportGenBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+                生成本周周报
+              </button>
+              <button class="btn" id="copyReportBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                复制文本
+              </button>
             </div>
-            <textarea id="reportText" placeholder="点「生成周报文本」后，这里显示格式化结果，可微调再复制。"></textarea>
+            <textarea id="reportText" placeholder="点击「生成本周周报」按钮，系统将自动汇总本周任务并生成格式化文本。&#10;&#10;生成后可在此微调内容，再点复制。"></textarea>
           </div>
         </div>
       </section>
@@ -2229,106 +2211,104 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     });
   }
 
-  /* ---------- 周报（结构化编辑，输出 项目：/板块：/ - 条目 / 下周待办： 格式）---------- */
-  function wrEsc(s){
-    return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-  function defaultWR(){
-    return {
-      project: "",
-      sections: [
-        {title:"首曝内容筹备", body:""},
-        {title:"素材筹备", body:""},
-        {title:"AI乐队", body:""},
-        {title:"漫剧专项", body:""}
-      ],
-      next: ""
-    };
-  }
-  function loadWR(){
-    var data = lsGet("wr_data", null);
-    if(!data || !data.sections){ data = defaultWR(); lsSet("wr_data", data); }
-    $("#wrProject").value = data.project || "";
-    renderWRSec(data.sections || []);
-    $("#wrNext").value = data.next || "";
-  }
-  function saveWR(){
-    var secs = [];
-    $$("#wrSections .wr-sec").forEach(function(sec){
-      secs.push({
-        title: sec.querySelector(".wr-sec-title").value,
-        body: sec.querySelector(".wr-sec-body").value
+  /* ---------- 周报（自动按任务汇总，纯文本符号，不用HTML实体）---------- */
+  function genReport(){
+    var tasks = lsGet("tasks", []);
+    var t = todayStr();
+    var d = parseDate(t);
+    var monday = new Date(d);
+    monday.setDate(d.getDate() - ((d.getDay()+6)%7));
+    var sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    var nextMon = new Date(sunday); nextMon.setDate(sunday.getDate()+1);
+    var nextSun = new Date(nextMon); nextSun.setDate(nextMon.getDate()+6);
+
+    function inRange(dateStr, start, end){
+      if(!dateStr) return false;
+      var dt = parseDate(dateStr);
+      return dt >= start && dt <= end;
+    }
+
+    var doneList = tasks.filter(function(x){ return x.status==="done" && x.doneAt && inRange(x.doneAt, monday, sunday); });
+    var doingList = tasks.filter(function(x){ return x.status==="in_progress"; });
+    var pendingList = tasks.filter(function(x){ return x.status!=="done" && x.status!=="paused" && x.due && inRange(x.due, monday, sunday); });
+    var nextList = tasks.filter(function(x){ return x.status!=="done" && x.status!=="paused" && x.due && inRange(x.due, nextMon, nextSun); });
+
+    function groupByCat(arr){
+      var groups = {};
+      arr.forEach(function(x){
+        var c = x.cat || "未分类";
+        if(!groups[c]) groups[c] = [];
+        groups[c].push(x);
       });
-    });
-    lsSet("wr_data", {
-      project: $("#wrProject").value,
-      sections: secs,
-      next: $("#wrNext").value
-    });
-  }
-  function renderWRSec(secs){
-    var box = $("#wrSections");
-    box.innerHTML = "";
-    (secs||[]).forEach(function(s){
-      var d = document.createElement("div");
-      d.className = "wr-sec";
-      d.innerHTML =
-        '<div class="wr-sec-head">'+
-          '<input class="wr-sec-title" placeholder="板块名称，如 首曝内容筹备" value="'+wrEsc(s.title||"")+'" />'+
-          '<button class="wr-sec-del" type="button" title="删除板块">✕</button>'+
-        '</div>'+
-        '<textarea class="wr-sec-body" placeholder="每行一条进展">'+wrEsc(s.body||"")+'</textarea>';
-      box.appendChild(d);
-    });
-  }
-  function addWRSection(){
-    var d = document.createElement("div");
-    d.className = "wr-sec";
-    d.innerHTML =
-      '<div class="wr-sec-head">'+
-        '<input class="wr-sec-title" placeholder="板块名称，如 首曝内容筹备" value="" />'+
-        '<button class="wr-sec-del" type="button" title="删除板块">✕</button>'+
-      '</div>'+
-      '<textarea class="wr-sec-body" placeholder="每行一条进展"></textarea>';
-    $("#wrSections").appendChild(d);
-    d.querySelector(".wr-sec-title").focus();
-    saveWR();
-  }
-  function buildWR(){
-    var project = ($("#wrProject").value||"").trim();
-    if(project && !/[：:]$/.test(project)) project += "：";
+      return groups;
+    }
+
     var lines = [];
-    if(project) lines.push(project);
-    $$("#wrSections .wr-sec").forEach(function(sec){
-      var title = (sec.querySelector(".wr-sec-title").value||"").trim();
-      if(title && !/[：:]$/.test(title)) title += "：";
-      if(title) lines.push(title);
-      (sec.querySelector(".wr-sec-body").value||"").split("\n").forEach(function(ln){
-        var t = ln.trim();
-        if(!t) return;
-        t = t.replace(/^[-–—•·*\s]+/,"");
-        lines.push("- " + t);
-      });
-    });
-    var next = ($("#wrNext").value||"").trim();
-    if(next){
-      lines.push("");
-      lines.push("下周待办：");
-      next.split("\n").forEach(function(ln){
-        var t = ln.trim();
-        if(!t) return;
-        t = t.replace(/^[-–—•·*\s]+/,"");
-        lines.push("- " + t);
+    lines.push("[工作周报 " + fmtDate(monday.toISOString().slice(0,10)) + " ~ " + fmtDate(sunday.toISOString().slice(0,10)) + "]");
+    lines.push("");
+
+    // 已完成
+    lines.push("[已完结]");
+    if(doneList.length === 0){
+      lines.push("  （暂无）");
+    } else {
+      var doneGroups = groupByCat(doneList);
+      Object.keys(doneGroups).forEach(function(cat){
+        lines.push("  > ["+cat+"] ("+doneGroups[cat].length+"项)");
+        doneGroups[cat].forEach(function(x){ lines.push("    - "+x.title); });
       });
     }
+    lines.push("");
+
+    // 进行中
+    lines.push("[进行中]");
+    if(doingList.length === 0){
+      lines.push("  （暂无）");
+    } else {
+      var doingGroups = groupByCat(doingList);
+      Object.keys(doingGroups).forEach(function(cat){
+        lines.push("  > ["+cat+"] ("+doingGroups[cat].length+"项)");
+        doingGroups[cat].forEach(function(x){
+          var info = [];
+          if(x.pre) info.push("前置:"+fmtDate(x.pre));
+          if(x.due) info.push("截止:"+fmtDate(x.due));
+          lines.push("    - "+x.title + (info.length ? " ("+info.join(", ")+")" : ""));
+        });
+      });
+    }
+    lines.push("");
+
+    // 待处理
+    lines.push("[待处理] (已逾期标 !!)");
+    if(pendingList.length === 0){
+      lines.push("  （暂无）");
+    } else {
+      var pendGroups = groupByCat(pendingList);
+      Object.keys(pendGroups).forEach(function(cat){
+        lines.push("  > ["+cat+"] ("+pendGroups[cat].length+"项)");
+        pendGroups[cat].forEach(function(x){
+          var overdue = x.due && x.due < t;
+          lines.push("    " + (overdue?"!! ":"- ") + x.title + (x.due ? " ("+fmtDate(x.due)+")" : ""));
+        });
+      });
+    }
+    lines.push("");
+
+    // 下周计划
+    lines.push("[下周计划]");
+    if(nextList.length === 0){
+      lines.push("  （暂无）");
+    } else {
+      var nextGroups = groupByCat(nextList);
+      Object.keys(nextGroups).forEach(function(cat){
+        lines.push("  > ["+cat+"] ("+nextGroups[cat].length+"项)");
+        nextGroups[cat].forEach(function(x){
+          lines.push("    - "+x.title + (x.due ? " ("+fmtDate(x.due)+")" : ""));
+        });
+      });
+    }
+
     $("#reportText").value = lines.join("\n");
-    saveWR();
-  }
-  function clearWR(){
-    if(!confirm("确定清空周报内容？（可重新填写）")) return;
-    lsSet("wr_data", {project:"", sections:[], next:""});
-    loadWR();
-    $("#reportText").value = "";
   }
   function copyReport(){
     var ta = $("#reportText");
@@ -2511,7 +2491,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $$(".panel").forEach(function(p){
       p.classList.toggle("active", p.id === tab);
     });
-    if(tab === "m-report"){ loadWR(); buildWR(); }
+    if(tab === "m-report") genReport();
   }
 
   /* ---------- 渲染全部 ---------- */
@@ -2536,17 +2516,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       b.addEventListener("click", function(){ switchTab(b.getAttribute("data-tab")); });
     });
     // 周报
-    $("#reportGenBtn").addEventListener("click", buildWR);
+    $("#reportGenBtn").addEventListener("click", genReport);
     $("#copyReportBtn").addEventListener("click", copyReport);
-    $("#wrAddSec").addEventListener("click", addWRSection);
-    $("#wrClear").addEventListener("click", clearWR);
-    $("#wrSections").addEventListener("click", function(e){
-      if(e.target.classList.contains("wr-sec-del")){
-        var sec = e.target.closest(".wr-sec");
-        if(sec){ sec.remove(); saveWR(); }
-      }
-    });
-    $("#m-report").addEventListener("input", saveWR);
     // 任务
     setupFormToggle();
     setupCustomCat();
