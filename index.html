@@ -1865,7 +1865,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   function generateShareImage(){
     var y = calState.y, m = calState.m;
     var monthNames = ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
-    var wdNames = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+    var wdNames = ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"];
 
     // Canvas 尺寸（参考图比例 ~16:9）
     var W = 1120, H = 780;
@@ -1918,7 +1918,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     ctx.font = "bold 17px 'PingFang SC','Microsoft YaHei',sans-serif";
     ctx.textAlign = "center";
     for(var wi = 0; wi < 7; wi++){
-      var wn = ["日","一","二","三","四","五","六"][wi];
+      var wn = ["一","二","三","四","五","六","日"][wi];
       ctx.fillText(wn, tableLeft + colW * wi + colW/2, tableTop + rowH/2 + 6);
     }
 
@@ -2042,7 +2042,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     // 星期头
     ctx.fillStyle = "#94a3b8";
     ctx.font = "10px sans-serif";
-    var wds = ["日","一","二","三","四","五","六"];
+    var wds = ["一","二","三","四","五","六","日"];
     for(var i = 0; i < 7; i++){
       ctx.fillText(wds[i], x + i * 21, baseY + 30);
     }
