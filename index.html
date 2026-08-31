@@ -204,6 +204,13 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 }
 .tf-clear:hover{background:#e2e8f0;color:#334155;}
 .tf-count{font-size:12.5px;color:#94a3b8;}
+.tf-share{
+  display:inline-flex;align-items:center;gap:6px;border:none;background:var(--grad);color:#fff;
+  font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:10px;cursor:pointer;
+  font-family:inherit;min-height:34px;
+}
+.tf-share svg{width:14px;height:14px;}
+.tf-share:hover{opacity:.9;}
 
 /* 折叠式添加按钮 */
 .add-toggle{
@@ -816,8 +823,14 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             </div>
           </div>
 
-          <!-- 项目 / 板块 筛选 -->
+          <!-- 周次 / 项目 / 板块 筛选 -->
           <div class="task-filters">
+            <select id="filterWeek" class="tf-sel" title="按周筛选（依据截止日）">
+              <option value="">全部周次</option>
+              <option value="0">本周</option>
+              <option value="-1">上周</option>
+              <option value="1">下周</option>
+            </select>
             <select id="filterProject" class="tf-sel" title="按项目筛选">
               <option value="">全部项目</option>
             </select>
@@ -825,6 +838,10 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
               <option value="">全部板块</option>
             </select>
             <button type="button" class="tf-clear" id="filterClear">重置筛选</button>
+            <button type="button" class="tf-share" id="weekShareBtn" title="把当前周任务生成分享图">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v14"/></svg>
+              分享周任务
+            </button>
             <span class="tf-count" id="filterCount"></span>
           </div>
 
@@ -1404,27 +1421,54 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     fillSelKeep($("#filterBoard"), boards, "全部板块");
   }
 
-  function renderTasks(){
-    var container = $("#taskList");
-    if(!container) return;
-    var allTasks = lsGet("tasks", []);
-    var t = todayStr();
+  /* ---------- 本地日期格式化（不用 toISOString，避免东八区偏移一天）---------- */
+  function ymd(dt){
+    return dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0");
+  }
+  /* 周范围：周一起算，offset 0=本周 -1=上周 1=下周 */
+  function weekRange(offset){
+    var d = parseDate(todayStr());
+    var monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay()+6)%7) + (parseInt(offset,10)||0)*7);
+    var sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    return { start: monday, end: sunday, startStr: ymd(monday), endStr: ymd(sunday) };
+  }
 
-    /* 搜索过滤（含 项目 / 板块 字段） */
-    var kw = ($("#taskSearch").value || "").trim().toLowerCase();
+  /* ---------- 统一筛选：列表 与 周任务分享图 共用，保证结果一致 ---------- */
+  function getFilteredTasks(){
+    var tasks = lsGet("tasks", []);
+
+    var kw = ($("#taskSearch") ? $("#taskSearch").value : "").trim().toLowerCase();
     if(kw){
-      allTasks = allTasks.filter(function(x){
+      tasks = tasks.filter(function(x){
         var hay = (x.title+" "+(x.cat||"")+" "+(x.note||"")+" "+(x.project||"")+" "+(x.board||"")).toLowerCase();
         return hay.indexOf(kw) !== -1;
       });
     }
 
-    /* 项目 / 板块 筛选 */
     var fp = ($("#filterProject") ? $("#filterProject").value : "") || "";
     var fb = ($("#filterBoard") ? $("#filterBoard").value : "") || "";
-    if(fp){ allTasks = allTasks.filter(function(x){ return ((x.project||"").trim()) === fp; }); }
-    if(fb){ allTasks = allTasks.filter(function(x){ return ((x.board||"").trim()) === fb; }); }
-    var activeFilter = !!(fp || fb);
+    if(fp){ tasks = tasks.filter(function(x){ return ((x.project||"").trim()) === fp; }); }
+    if(fb){ tasks = tasks.filter(function(x){ return ((x.board||"").trim()) === fb; }); }
+
+    var fwEl = $("#filterWeek");
+    var fw = (fwEl && fwEl.value !== "") ? fwEl.value : null;
+    var range = (fw !== null) ? weekRange(parseInt(fw,10) || 0) : null;
+    if(range){
+      tasks = tasks.filter(function(x){ return x.due && x.due >= range.startStr && x.due <= range.endStr; });
+    }
+    return { tasks: tasks, kw: kw, project: fp, board: fb, range: range, weekOffset: (fw !== null ? (parseInt(fw,10)||0) : null) };
+  }
+
+  function renderTasks(){
+    var container = $("#taskList");
+    if(!container) return;
+    var t = todayStr();
+    var f = getFilteredTasks();
+    var allTasks = f.tasks;
+    var kw = f.kw;
+    var activeFilter = !!(f.project || f.board || f.range);
+
     var cntEl = $("#filterCount");
     if(cntEl){ cntEl.textContent = activeFilter ? ("筛选出 " + allTasks.length + " 条") : ""; }
 
@@ -1439,9 +1483,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     });
 
     if(sorted.length === 0){
-      var emptyMsg = (kw || activeFilter)
-        ? '没有符合条件的任务，换个关键词或点「重置筛选」试试。'
-        : '还没有任务，点击上方「添加新任务」创建第一条。';
+      var emptyMsg;
+      if(kw) emptyMsg = '没有匹配的任务，换个关键词试试。';
+      else if(f.range) emptyMsg = '这一周没有任务（周视图只统计已设截止日的任务），换个周次或点「重置筛选」。';
+      else if(activeFilter) emptyMsg = '当前筛选下没有任务，点「重置筛选」看看全部。';
+      else emptyMsg = '还没有任务，点击上方「添加新任务」创建第一条。';
       container.innerHTML = '<div class="empty">'+emptyMsg+'</div>';
       renderTaskStat();
       return;
@@ -2093,6 +2139,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var wrap = $("#shareCanvasWrap");
     if(wrap) wrap.innerHTML = "";
     wrap.appendChild(canvas);
+    var stEl2 = $("#shareModalTitle");
+    if(stEl2) stEl2.textContent = "📅 日程分享图";
     var modal = $("#shareModal");
     if(modal) modal.classList.add("show");
   }
@@ -2138,6 +2186,151 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
         ctx.fillText(String(n), x + c * 21 + 10, baseY + 44 + r * 15);
       }
     }
+  }
+
+  /* ========== 周任务分享图（按周分享任务列表）========== */
+  function generateWeekShareImage(){
+    var f = getFilteredTasks();
+    var range = f.range || weekRange(0);              // 未选周次时默认按本周生成
+    var off = (f.weekOffset === null) ? 0 : f.weekOffset;
+    var titlePrefix = off === -1 ? "上周" : (off === 1 ? "下周" : "本周");
+    var pool = f.range ? f.tasks : lsGet("tasks", []);
+    var tasks = pool.filter(function(x){ return x.due && x.due >= range.startStr && x.due <= range.endStr; });
+
+    var wdNames = ["周一","周二","周三","周四","周五","周六","周日"];
+    var byDay = {};
+    tasks.forEach(function(x){ if(!byDay[x.due]) byDay[x.due] = []; byDay[x.due].push(x); });
+
+    var todayS = todayStr();
+    var W = 900, padX = 46, contentW = W - padX * 2;
+
+    /* 按 周一~周日 组织 */
+    var rows = [];
+    for(var i = 0; i < 7; i++){
+      var dt = new Date(range.start.getFullYear(), range.start.getMonth(), range.start.getDate() + i);
+      var ds = ymd(dt);
+      var list = (byDay[ds] || []).slice().sort(function(a,b){
+        var od = {"not_started":0,"in_progress":1,"paused":2,"done":3};
+        return (od[a.status]||0) - (od[b.status]||0);
+      });
+      rows.push({
+        ds: ds, wd: wdNames[i],
+        dateLabel: (dt.getMonth()+1) + "月" + dt.getDate() + "日",
+        isToday: ds === todayS, list: list
+      });
+    }
+
+    /* 动态高度 */
+    var H = 128;
+    rows.forEach(function(r){ H += 32 + Math.max(r.list.length,1) * 28 + 6 + 18; });
+    H += 62;
+
+    var canvas = document.createElement("canvas");
+    canvas.id = "shareCanvas";
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext("2d");
+
+    /* 背景 */
+    var bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, "#ffffff"); bg.addColorStop(1, "#f6fafc");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    /* 顶部主色条 */
+    var bar = ctx.createLinearGradient(0, 0, W, 0);
+    bar.addColorStop(0, "#22d3ee"); bar.addColorStop(1, "#06b6d4");
+    ctx.fillStyle = bar; ctx.fillRect(0, 0, W, 6);
+
+    /* 标题 / 日期范围 */
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#0e7490";
+    ctx.font = "bold 30px 'PingFang SC','Microsoft YaHei',sans-serif";
+    ctx.fillText(titlePrefix + "任务清单", padX, 58);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "15px 'PingFang SC','Microsoft YaHei',sans-serif";
+    ctx.fillText((range.start.getMonth()+1)+"月"+range.start.getDate()+"日 - "
+                 + (range.end.getMonth()+1)+"月"+range.end.getDate()+"日", padX, 84);
+
+    /* 水印 + 筛选标签 */
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "14px 'PingFang SC','Microsoft YaHei',sans-serif";
+    var tag = [];
+    if(f.project) tag.push(f.project);
+    if(f.board) tag.push(f.board);
+    ctx.fillText("李陈煜的效率工作台" + (tag.length ? " · " + tag.join(" / ") : ""), W - padX, 58);
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "13px sans-serif";
+    ctx.fillText("共 " + tasks.length + " 项", W - padX, 84);
+
+    ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padX, 104); ctx.lineTo(W - padX, 104); ctx.stroke();
+
+    /* 主体：按天 */
+    var y = 128;
+    rows.forEach(function(r){
+      if(r.isToday){
+        ctx.fillStyle = "#ecfeff";
+        roundRect(ctx, padX, y - 2, contentW, 30, 8);
+        ctx.fill();
+      }
+      ctx.textAlign = "left";
+      ctx.fillStyle = r.isToday ? "#0e7490" : "#334155";
+      ctx.font = "bold 16px 'PingFang SC','Microsoft YaHei',sans-serif";
+      ctx.fillText(r.wd + " · " + r.dateLabel + (r.isToday ? "（今天）" : ""), padX + 10, y + 18);
+      y += 32;
+
+      if(r.list.length === 0){
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "13px 'PingFang SC','Microsoft YaHei',sans-serif";
+        ctx.fillText("—", padX + 12, y + 12);
+        y += 28;
+      } else {
+        r.list.forEach(function(x){
+          var overdue = x.status !== "done" && x.due && x.due < todayS;
+          ctx.beginPath();
+          ctx.arc(padX + 16, y + 11, 4, 0, Math.PI * 2);
+          ctx.fillStyle = (x.status === "done") ? "#cbd5e1" : (CAT_DOT[x.cat] || "#6b7280");
+          ctx.fill();
+
+          var txt = (x.status === "done" ? "✓ " : "") + x.title;
+          if(overdue) txt = "! " + txt;
+          if(txt.length > 40) txt = txt.substring(0, 39) + "…";
+          ctx.fillStyle = (x.status === "done") ? "#94a3b8" : (overdue ? "#dc2626" : "#1f2937");
+          ctx.font = "14px 'PingFang SC','Microsoft YaHei',sans-serif";
+          ctx.fillText(txt, padX + 28, y + 16);
+
+          if(x.board){
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "12px 'PingFang SC','Microsoft YaHei',sans-serif";
+            ctx.fillText(x.board, W - padX - 6, y + 16);
+            ctx.textAlign = "left";
+          }
+          y += 28;
+        });
+      }
+      y += 18;
+    });
+
+    /* 底部统计 */
+    var doneN = tasks.filter(function(x){ return x.status === "done"; }).length;
+    var overN = tasks.filter(function(x){ return x.status !== "done" && x.due && x.due < todayS; }).length;
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.beginPath(); ctx.moveTo(padX, H - 46); ctx.lineTo(W - padX, H - 46); ctx.stroke();
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "12.5px 'PingFang SC','Microsoft YaHei',sans-serif";
+    ctx.fillText("共 " + tasks.length + " 项 · 已完成 " + doneN + " 项" + (overN ? (" · 逾期 " + overN + " 项") : ""), padX, H - 22);
+    ctx.textAlign = "right";
+    ctx.fillText("生成于 " + todayS, W - padX, H - 22);
+
+    /* 显示到弹窗 */
+    var wrap = $("#shareCanvasWrap");
+    if(wrap){ wrap.innerHTML = ""; wrap.appendChild(canvas); }
+    var stEl = $("#shareModalTitle");
+    if(stEl) stEl.textContent = "📋 " + titlePrefix + "任务清单";
+    var modal = $("#shareModal");
+    if(modal) modal.classList.add("show");
   }
 
   // 圆角矩形辅助
@@ -2599,17 +2792,21 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $("#taskForm").addEventListener("submit", onTaskSubmit);
     $("#taskSearch").addEventListener("input", function(){ renderTasks(); if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks(); });
 
-    /* 项目 / 板块 筛选 */
-    var fpEl = $("#filterProject"), fbEl = $("#filterBoard"), fcEl = $("#filterClear");
+    /* 周次 / 项目 / 板块 筛选 + 周任务分享图 */
+    var fwEl = $("#filterWeek"), fpEl = $("#filterProject"), fbEl = $("#filterBoard"), fcEl = $("#filterClear");
+    if(fwEl) fwEl.addEventListener("change", function(){ renderTasks(); });
     if(fpEl) fpEl.addEventListener("change", function(){ renderTasks(); });
     if(fbEl) fbEl.addEventListener("change", function(){ renderTasks(); });
     if(fcEl) fcEl.addEventListener("click", function(){
+      if(fwEl) fwEl.value = "";
       if(fpEl) fpEl.value = "";
       if(fbEl) fbEl.value = "";
       var s = $("#taskSearch"); if(s) s.value = "";
       renderTasks();
       if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks();
     });
+    var wsBtn = $("#weekShareBtn");
+    if(wsBtn) wsBtn.addEventListener("click", function(){ generateWeekShareImage(); });
     // 知识库
     $("#kbForm").addEventListener("submit", onKBSubmit);
     $("#kbSearch").addEventListener("input", renderKB);
@@ -2634,7 +2831,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 <div class="share-modal" id="shareModal">
   <div class="share-modal-inner">
     <div class="share-modal-head">
-      <h3>📅 日程分享图</h3>
+      <h3 id="shareModalTitle">📅 日程分享图</h3>
       <div class="share-modal-actions">
         <button class="share-btn-download" id="shareDownloadBtn">下载图片</button>
         <button class="share-btn-close" id="shareCloseBtn">关闭</button>
