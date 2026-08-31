@@ -191,6 +191,20 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 /* 搜索栏 */
 .task-search{display:flex;gap:10px;align-items:center;margin-bottom:15px;}
 
+/* 项目 / 板块 筛选行 */
+.task-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px;}
+.tf-sel{
+  font-size:13px;padding:7px 10px;border-radius:10px;border:1px solid #dbe4ec;
+  background:#fff;color:#1f2a36;font-family:inherit;max-width:210px;min-height:34px;cursor:pointer;
+}
+.tf-sel:focus{outline:none;border-color:#22d3ee;}
+.tf-clear{
+  border:none;background:#f1f5f9;color:#64748b;font-size:12.5px;padding:8px 13px;
+  border-radius:10px;cursor:pointer;font-family:inherit;min-height:34px;
+}
+.tf-clear:hover{background:#e2e8f0;color:#334155;}
+.tf-count{font-size:12.5px;color:#94a3b8;}
+
 /* 折叠式添加按钮 */
 .add-toggle{
   display:inline-flex;align-items:center;gap:8px;background:var(--grad);color:#fff;
@@ -802,6 +816,18 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             </div>
           </div>
 
+          <!-- 项目 / 板块 筛选 -->
+          <div class="task-filters">
+            <select id="filterProject" class="tf-sel" title="按项目筛选">
+              <option value="">全部项目</option>
+            </select>
+            <select id="filterBoard" class="tf-sel" title="按业务板块筛选">
+              <option value="">全部板块</option>
+            </select>
+            <button type="button" class="tf-clear" id="filterClear">重置筛选</button>
+            <span class="tf-count" id="filterCount"></span>
+          </div>
+
           <!-- 列表/日历 子标签 -->
           <div class="view-tabs">
             <button class="view-tab active" id="tabListView" data-view="list">
@@ -1356,20 +1382,51 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   }
 
   /* ---------- 任务管理（分类区块 + 就地编辑）---------- */
+  /* ---------- 项目 / 板块 筛选下拉（自动收集已有值）---------- */
+  function fillSelKeep(sel, vals, allLabel){
+    if(!sel) return;
+    var cur = sel.value;
+    var html = '<option value="">'+allLabel+'</option>';
+    vals.slice().sort(function(a,b){ return String(a).localeCompare(String(b),"zh-Hans-CN"); }).forEach(function(v){
+      html += '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>';
+    });
+    sel.innerHTML = html;
+    if(cur && vals.indexOf(cur) !== -1) sel.value = cur;
+  }
+  function populateTaskFilters(){
+    var tasks = lsGet("tasks", []);
+    var projs = [], boards = [];
+    tasks.forEach(function(x){
+      var p = (x.project||"").trim(); if(p && projs.indexOf(p) === -1) projs.push(p);
+      var b = (x.board||"").trim(); if(b && boards.indexOf(b) === -1) boards.push(b);
+    });
+    fillSelKeep($("#filterProject"), projs, "全部项目");
+    fillSelKeep($("#filterBoard"), boards, "全部板块");
+  }
+
   function renderTasks(){
     var container = $("#taskList");
     if(!container) return;
     var allTasks = lsGet("tasks", []);
     var t = todayStr();
 
-    /* 搜索过滤 */
+    /* 搜索过滤（含 项目 / 板块 字段） */
     var kw = ($("#taskSearch").value || "").trim().toLowerCase();
     if(kw){
       allTasks = allTasks.filter(function(x){
-        var hay = (x.title+" "+(x.cat||"")+" "+(x.note||"")).toLowerCase();
+        var hay = (x.title+" "+(x.cat||"")+" "+(x.note||"")+" "+(x.project||"")+" "+(x.board||"")).toLowerCase();
         return hay.indexOf(kw) !== -1;
       });
     }
+
+    /* 项目 / 板块 筛选 */
+    var fp = ($("#filterProject") ? $("#filterProject").value : "") || "";
+    var fb = ($("#filterBoard") ? $("#filterBoard").value : "") || "";
+    if(fp){ allTasks = allTasks.filter(function(x){ return ((x.project||"").trim()) === fp; }); }
+    if(fb){ allTasks = allTasks.filter(function(x){ return ((x.board||"").trim()) === fb; }); }
+    var activeFilter = !!(fp || fb);
+    var cntEl = $("#filterCount");
+    if(cntEl){ cntEl.textContent = activeFilter ? ("筛选出 " + allTasks.length + " 条") : ""; }
 
     /* 排序 */
     var sorted = allTasks.slice().sort(function(a,b){
@@ -1382,7 +1439,10 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     });
 
     if(sorted.length === 0){
-      container.innerHTML = '<div class="empty">'+(kw ? '没有匹配的任务，换个关键词试试。' : '还没有任务，点击上方「添加新任务」创建第一条。')+'</div>';
+      var emptyMsg = (kw || activeFilter)
+        ? '没有符合条件的任务，换个关键词或点「重置筛选」试试。'
+        : '还没有任务，点击上方「添加新任务」创建第一条。';
+      container.innerHTML = '<div class="empty">'+emptyMsg+'</div>';
       renderTaskStat();
       return;
     }
@@ -1762,16 +1822,26 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var listView = $("#listView");
     var calView = $("#calView");
 
+    // 项目/板块筛选行只在「列表」视图生效，切到日程时隐藏，避免误解
+    function syncFilterRowVisibility(){
+      var fr = document.querySelector(".task-filters");
+      if(!fr) return;
+      fr.style.display = (calView && calView.classList.contains("active")) ? "none" : "";
+    }
+
     if(tabList && tabCal && listView && calView){
       tabList.addEventListener("click", function(){
         tabList.classList.add("active"); tabCal.classList.remove("active");
         listView.style.display = ""; calView.classList.remove("active");
+        syncFilterRowVisibility();
       });
       tabCal.addEventListener("click", function(){
         tabCal.classList.add("active"); tabList.classList.remove("active");
         calView.classList.add("active"); listView.style.display = "none";
+        syncFilterRowVisibility();
         renderCalendar(); // 切换时刷新
       });
+      syncFilterRowVisibility();
     }
 
     // 月份导航
@@ -2500,6 +2570,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 
   /* ---------- 渲染全部 ---------- */
   function renderAll(){
+    populateTaskFilters();
     renderToday();
     renderTasks();
     renderKB();
@@ -2527,6 +2598,18 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     setupCustomCat();
     $("#taskForm").addEventListener("submit", onTaskSubmit);
     $("#taskSearch").addEventListener("input", function(){ renderTasks(); if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks(); });
+
+    /* 项目 / 板块 筛选 */
+    var fpEl = $("#filterProject"), fbEl = $("#filterBoard"), fcEl = $("#filterClear");
+    if(fpEl) fpEl.addEventListener("change", function(){ renderTasks(); });
+    if(fbEl) fbEl.addEventListener("change", function(){ renderTasks(); });
+    if(fcEl) fcEl.addEventListener("click", function(){
+      if(fpEl) fpEl.value = "";
+      if(fbEl) fbEl.value = "";
+      var s = $("#taskSearch"); if(s) s.value = "";
+      renderTasks();
+      if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks();
+    });
     // 知识库
     $("#kbForm").addEventListener("submit", onKBSubmit);
     $("#kbSearch").addEventListener("input", renderKB);
