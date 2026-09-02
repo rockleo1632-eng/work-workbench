@@ -211,6 +211,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 }
 .tf-share svg{width:14px;height:14px;}
 .tf-share:hover{opacity:.9;}
+/* 节点标签 */
+.t-node{display:inline-flex;align-items:center;padding:1px 8px;border-radius:8px;font-size:11.5px;font-weight:600;}
 
 /* 折叠式添加按钮 */
 .add-toggle{
@@ -831,11 +833,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
               <option value="-1">上周</option>
               <option value="1">下周</option>
             </select>
-            <select id="filterProject" class="tf-sel" title="按项目筛选">
-              <option value="">全部项目</option>
+            <select id="filterCat" class="tf-sel" title="按类别标签筛选">
+              <option value="">全部类别</option>
             </select>
-            <select id="filterBoard" class="tf-sel" title="按业务板块筛选">
-              <option value="">全部板块</option>
+            <select id="filterNode" class="tf-sel" title="按节点标签筛选">
+              <option value="">全部节点</option>
             </select>
             <button type="button" class="tf-clear" id="filterClear">重置筛选</button>
             <button type="button" class="tf-share" id="weekShareBtn" title="把当前周任务生成分享图">
@@ -875,7 +877,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
                   <label>任务标题</label>
                   <input type="text" id="taskTitle" placeholder="例如：整理 Q3 项目复盘文档" required>
                 </div>
-                <div class="field" style="flex:0 0 130px;">
+                <div class="field" style="flex:0 0 116px;">
                   <label>类别</label>
                   <select id="taskCat">
                     <option value="素材">素材</option>
@@ -885,11 +887,28 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
                     <option value="__custom__">+ 自定义...</option>
                   </select>
                 </div>
+                <div class="field" style="flex:0 0 152px;">
+                  <label>节点</label>
+                  <select id="taskNode">
+                    <option value="首曝启宣">首曝启宣</option>
+                    <option value="全平台测试">全平台测试</option>
+                    <option value="公测定档">公测定档</option>
+                    <option value="预下载">预下载</option>
+                    <option value="公测">公测</option>
+                    <option value="__custom__">+ 自定义节点...</option>
+                  </select>
+                </div>
               </div>
               <div class="custom-cat-row" id="customCatRow">
                 <div class="field" style="flex:0 0 160px;">
                   <label>自定义类别名</label>
                   <input type="text" id="taskCustomCat" placeholder="输入新类别名称" maxlength="10">
+                </div>
+              </div>
+              <div class="custom-cat-row" id="customNodeRow">
+                <div class="field" style="flex:0 0 190px;">
+                  <label>自定义节点名</label>
+                  <input type="text" id="taskCustomNode" placeholder="输入新节点名称" maxlength="12">
                 </div>
               </div>
               <div class="form-row">
@@ -961,13 +980,23 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
                       <label>任务标题</label>
                       <input type="text" id="calQTitle" placeholder="输入任务标题" required>
                     </div>
-                    <div class="field" style="flex:0 0 110px;">
+                    <div class="field" style="flex:0 0 104px;">
                       <label>类别</label>
                       <select id="calQCat">
                         <option value="素材">素材</option>
                         <option value="事件">事件</option>
                         <option value="传播">传播</option>
                         <option value="专项" selected>专项</option>
+                      </select>
+                    </div>
+                    <div class="field" style="flex:0 0 132px;">
+                      <label>节点</label>
+                      <select id="calQNode">
+                        <option value="首曝启宣">首曝启宣</option>
+                        <option value="全平台测试">全平台测试</option>
+                        <option value="公测定档">公测定档</option>
+                        <option value="预下载">预下载</option>
+                        <option value="公测">公测</option>
                       </select>
                     </div>
                   </div>
@@ -1108,6 +1137,40 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   var CAT_DOT = {
     "素材":"#8b5cf6","事件":"#f43f5e","传播":"#10b981","专项":"#f59e0b"
   };
+  /* ---------- 节点标签 ---------- */
+  var DEFAULT_NODES = ["首曝启宣","全平台测试","公测定档","预下载","公测"];
+  var NODE_DOT = {
+    "首曝启宣":"#22d3ee","全平台测试":"#8b5cf6","公测定档":"#f59e0b","预下载":"#10b981","公测":"#f43f5e"
+  };
+  function getNodeOptions(){
+    var custom = lsGet("custom_nodes", []);
+    var all = DEFAULT_NODES.slice();
+    (custom || []).forEach(function(n){
+      if(n && all.indexOf(n) === -1) all.push(n);
+    });
+    return all;
+  }
+  function addCustomNode(name){
+    name = (name || "").trim();
+    if(!name) return false;
+    var custom = lsGet("custom_nodes", []) || [];
+    if(DEFAULT_NODES.indexOf(name) === -1 && custom.indexOf(name) === -1){
+      custom.push(name);
+      lsSet("custom_nodes", custom);
+    }
+    return true;
+  }
+  /* 一次性迁移：给历史任务补节点标签（专项→公测定档，其余→首曝启宣） */
+  function migrateNodeTags(){
+    if(lsGet("node_migrated_v1", false)) return;
+    var tasks = lsGet("tasks", []);
+    if(!tasks.length){ lsSet("node_migrated_v1", true); return; }
+    tasks.forEach(function(x){
+      if(!x.node) x.node = (x.cat === "专项") ? "公测定档" : "首曝启宣";
+    });
+    lsSet("tasks", tasks);          // 会触发云端同步自动上传
+    lsSet("node_migrated_v1", true);
+  }
   var STATUS_MAP = {
     "not_started":{label:"未开始"},
     "in_progress":{label:"进行中"},
@@ -1322,8 +1385,13 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $("#taskEditId").value = "";
     $("#taskCat").value = "专项";
     $("#customCatRow").classList.remove("show");
+    if($("#customNodeRow")) $("#customNodeRow").classList.remove("show");
     $("#taskProject").value = "";
     $("#taskBoard").value = "";
+    // 节点默认值跟随类别：专项→公测定档，其余→首曝启宣
+    if($("#taskNode")){
+      $("#taskNode").value = ($("#taskCat").value === "专项") ? "公测定档" : "首曝启宣";
+    }
     // 不改变按钮文字（保持"确认添加"）
   }
 
@@ -1350,6 +1418,63 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       return custom || "专项";
     }
     return sel.value;
+  }
+
+  /* ---------- 自定义节点切换 ---------- */
+  function setupCustomNode(){
+    var sel = $("#taskNode");
+    var row = $("#customNodeRow");
+    if(!sel || !row) return;
+    sel.addEventListener("change", function(){
+      if(sel.value === "__custom__"){
+        row.classList.add("show");
+        $("#taskCustomNode").focus();
+      } else {
+        row.classList.remove("show");
+      }
+    });
+  }
+
+  function getSelectedNode(){
+    var sel = $("#taskNode");
+    if(!sel) return "首曝启宣";
+    if(sel.value === "__custom__"){
+      var custom = ($("#taskCustomNode").value || "").trim();
+      if(custom){ addCustomNode(custom); return custom; }
+      return "首曝启宣";
+    }
+    return sel.value;
+  }
+
+  /* 节点下拉统一填充（主表单 / 筛选 / 内联编辑 / 快速添加） */
+  function nodeOptionsHtml(cur, allLabel){
+    var html = allLabel ? ('<option value="">'+allLabel+'</option>') : "";
+    getNodeOptions().forEach(function(n){
+      html += '<option value="'+escapeHtml(n)+'"'+(n===cur?' selected':'')+'>'+escapeHtml(n)+'</option>';
+    });
+    return html;
+  }
+  function refreshNodeSelects(){
+    // 筛选下拉
+    var fn = $("#filterNode");
+    if(fn){ var c = fn.value; fn.innerHTML = nodeOptionsHtml(c, "全部节点"); fn.value = c; }
+    // 主表单：保留内置项 + 追加自定义项
+    var tn = $("#taskNode");
+    if(tn){
+      var cur = tn.value;
+      var custom = (lsGet("custom_nodes", []) || []).filter(function(n){ return DEFAULT_NODES.indexOf(n) === -1; });
+      // 移除旧的自定义项，重新追加（保留 __custom__ 在最后）
+      Array.prototype.slice.call(tn.options).forEach(function(o){
+        if(o.value !== "__custom__" && DEFAULT_NODES.indexOf(o.value) === -1) tn.removeChild(o);
+      });
+      var last = tn.querySelector('option[value="__custom__"]');
+      custom.forEach(function(n){
+        var op = document.createElement("option");
+        op.value = n; op.textContent = n;
+        if(last) tn.insertBefore(op, last); else tn.appendChild(op);
+      });
+      if(cur) tn.value = cur;
+    }
   }
 
   /* ---------- 今天要处理 ---------- */
@@ -1412,13 +1537,12 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   }
   function populateTaskFilters(){
     var tasks = lsGet("tasks", []);
-    var projs = [], boards = [];
+    var cats = [];
     tasks.forEach(function(x){
-      var p = (x.project||"").trim(); if(p && projs.indexOf(p) === -1) projs.push(p);
-      var b = (x.board||"").trim(); if(b && boards.indexOf(b) === -1) boards.push(b);
+      var c = (x.cat||"").trim(); if(c && cats.indexOf(c) === -1) cats.push(c);
     });
-    fillSelKeep($("#filterProject"), projs, "全部项目");
-    fillSelKeep($("#filterBoard"), boards, "全部板块");
+    fillSelKeep($("#filterCat"), cats, "全部类别");
+    refreshNodeSelects();   // 节点下拉：内置 5 项 + 自定义项
   }
 
   /* ---------- 本地日期格式化（不用 toISOString，避免东八区偏移一天）---------- */
@@ -1446,10 +1570,10 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       });
     }
 
-    var fp = ($("#filterProject") ? $("#filterProject").value : "") || "";
-    var fb = ($("#filterBoard") ? $("#filterBoard").value : "") || "";
-    if(fp){ tasks = tasks.filter(function(x){ return ((x.project||"").trim()) === fp; }); }
-    if(fb){ tasks = tasks.filter(function(x){ return ((x.board||"").trim()) === fb; }); }
+    var fc = ($("#filterCat") ? $("#filterCat").value : "") || "";
+    var fnd = ($("#filterNode") ? $("#filterNode").value : "") || "";
+    if(fc){ tasks = tasks.filter(function(x){ return (x.cat||"") === fc; }); }
+    if(fnd){ tasks = tasks.filter(function(x){ return ((x.node||"").trim()) === fnd; }); }
 
     var fwEl = $("#filterWeek");
     var fw = (fwEl && fwEl.value !== "") ? fwEl.value : null;
@@ -1457,7 +1581,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     if(range){
       tasks = tasks.filter(function(x){ return x.due && x.due >= range.startStr && x.due <= range.endStr; });
     }
-    return { tasks: tasks, kw: kw, project: fp, board: fb, range: range, weekOffset: (fw !== null ? (parseInt(fw,10)||0) : null) };
+    return { tasks: tasks, kw: kw, cat: fc, node: fnd, range: range, weekOffset: (fw !== null ? (parseInt(fw,10)||0) : null) };
   }
 
   function renderTasks(){
@@ -1467,7 +1591,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var f = getFilteredTasks();
     var allTasks = f.tasks;
     var kw = f.kw;
-    var activeFilter = !!(f.project || f.board || f.range);
+    var activeFilter = !!(f.cat || f.node || f.range);
 
     var cntEl = $("#filterCount");
     if(cntEl){ cntEl.textContent = activeFilter ? ("筛选出 " + allTasks.length + " 条") : ""; }
@@ -1532,6 +1656,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           + (preTxt ? '<span>'+preTxt+'</span>' : '')
           + '<span>'+dueTxt+'</span>'
           + (x.note ? '<span>&#128221; '+escapeHtml(x.note)+'</span>' : '')
+          + (x.node ? '<span class="t-node" style="color:'+(NODE_DOT[x.node]||"#0891b2")+';background:'+(NODE_DOT[x.node]||"#0891b2")+'14;border:1px solid '+(NODE_DOT[x.node]||"#0891b2")+'33;">'+escapeHtml(x.node)+'</span>' : '')
           + (x.project ? '<span class="t-prj">'+escapeHtml(x.project)+'</span>' : '')
           + (x.board ? '<span class="t-board">'+escapeHtml(x.board)+'</span>' : '')
           + '</div>'
@@ -1539,12 +1664,15 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           + '<div class="inline-edit" id="ie-'+x.id+'">'
           + '<div class="ie-row">'
           + '<div class="field" style="flex:2;"><label>标题</label><input type="text" id="iet-'+x.id+'" value="'+escapeHtml(x.title)+'"></div>'
-          + '<div class="field" style="flex:0 0 110px;"><label>类别</label><select id="iec-'+x.id+'">';
+          + '<div class="field" style="flex:0 0 104px;"><label>类别</label><select id="iec-'+x.id+'">';
         DEFAULT_CATS.forEach(function(c){
           html += '<option value="'+c+'"'+(x.cat===c?' selected':'')+'>'+c+'</option>';
         });
         html += '<option value="__other__"'+(DEFAULT_CATS.indexOf(x.cat)===-1?' selected':'')+'>其他</option>';
         html += '</select></div>'
+          + '<div class="field" style="flex:0 0 132px;"><label>节点</label><select id="ien2-'+x.id+'">'
+          + nodeOptionsHtml(x.node || (x.cat === "专项" ? "公测定档" : "首曝启宣"), "")
+          + '</select></div>'
           + '</div>'
           + '<div class="ie-row">'
           + '<div class="field" style="flex:0 0 140px;"><label>前置节点</label><input type="date" id="iep-'+x.id+'" value="'+(x.pre||'')+'"></div>'
@@ -1680,6 +1808,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
         x.pre = $("#iep-"+id).value || "";
         x.due = $("#ied-"+id).value || "";
         x.note = $("#ien-"+id).value.trim();
+        var ndEl = $("#ien2-"+id);
+        if(ndEl) x.node = ndEl.value || x.node || "首曝启宣";
         x.project = $("#ieprj-"+id).value.trim();
         x.board = $("#ieb-"+id).value.trim();
       }
@@ -1723,6 +1853,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var data = {
       title: title,
       cat: cat,
+      node: getSelectedNode(),
       project: $("#taskProject").value.trim(),
       board: $("#taskBoard").value.trim(),
       pre: $("#taskPre").value || "",
@@ -1940,6 +2071,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       var data = {
         id: uid(), title:title,
         cat: $("#calQCat").value || "专项",
+        node: (($("#calQNode") && $("#calQNode").value) || (($("#calQCat").value === "专项") ? "公测定档" : "首曝启宣")),
         project:$("#calQProject").value.trim(), board:$("#calQBoard").value.trim(),
         pre:$("#calQPre").value || "", due:$("#calQDue").value || $("#calQDate").value || "",
         note:"", status:"not_started",
@@ -2255,8 +2387,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "14px 'PingFang SC','Microsoft YaHei',sans-serif";
     var tag = [];
-    if(f.project) tag.push(f.project);
-    if(f.board) tag.push(f.board);
+    if(f.cat) tag.push(f.cat);
+    if(f.node) tag.push(f.node);
     ctx.fillText("李陈煜的效率工作台" + (tag.length ? " · " + tag.join(" / ") : ""), W - padX, 58);
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px sans-serif";
@@ -2299,11 +2431,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           ctx.font = "14px 'PingFang SC','Microsoft YaHei',sans-serif";
           ctx.fillText(txt, padX + 28, y + 16);
 
-          if(x.board){
+          if(x.node){
             ctx.textAlign = "right";
-            ctx.fillStyle = "#cbd5e1";
+            ctx.fillStyle = (NODE_DOT[x.node] || "#94a3b8");
             ctx.font = "12px 'PingFang SC','Microsoft YaHei',sans-serif";
-            ctx.fillText(x.board, W - padX - 6, y + 16);
+            ctx.fillText(x.node, W - padX - 6, y + 16);
             ctx.textAlign = "left";
           }
           y += 28;
@@ -2775,6 +2907,8 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   function init(){
     cloudBoot(function(){
       seedIfEmpty();
+      migrateNodeTags();     // 一次性：给历史任务补节点标签
+      refreshNodeSelects();  // 节点下拉载入自定义项
       renderAll();
       initCal();
     });
@@ -2789,18 +2923,19 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     // 任务
     setupFormToggle();
     setupCustomCat();
+    setupCustomNode();
     $("#taskForm").addEventListener("submit", onTaskSubmit);
     $("#taskSearch").addEventListener("input", function(){ renderTasks(); if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks(); });
 
     /* 周次 / 项目 / 板块 筛选 + 周任务分享图 */
-    var fwEl = $("#filterWeek"), fpEl = $("#filterProject"), fbEl = $("#filterBoard"), fcEl = $("#filterClear");
+    var fwEl = $("#filterWeek"), fcatEl = $("#filterCat"), fnEl = $("#filterNode"), fcEl = $("#filterClear");
     if(fwEl) fwEl.addEventListener("change", function(){ renderTasks(); });
-    if(fpEl) fpEl.addEventListener("change", function(){ renderTasks(); });
-    if(fbEl) fbEl.addEventListener("change", function(){ renderTasks(); });
+    if(fcatEl) fcatEl.addEventListener("change", function(){ renderTasks(); });
+    if(fnEl) fnEl.addEventListener("change", function(){ renderTasks(); });
     if(fcEl) fcEl.addEventListener("click", function(){
       if(fwEl) fwEl.value = "";
-      if(fpEl) fpEl.value = "";
-      if(fbEl) fbEl.value = "";
+      if(fcatEl) fcatEl.value = "";
+      if(fnEl) fnEl.value = "";
       var s = $("#taskSearch"); if(s) s.value = "";
       renderTasks();
       if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks();
