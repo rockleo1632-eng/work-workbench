@@ -564,6 +564,98 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 .btn.ghost{background:#eef3f7;color:#41566a;}
 .btn.ghost:hover{background:#e2eaf1;}
 
+/* 日报周报：子页签 */
+.rpt-tabs{
+  display:flex;gap:6px;margin-top:14px;padding:4px;
+  background:#eef4f7;border-radius:12px;width:fit-content;
+}
+.rpt-tab{
+  border:0;cursor:pointer;background:transparent;color:#5b7686;
+  font:inherit;font-size:14px;font-weight:600;
+  padding:8px 22px;border-radius:9px;min-height:38px;
+  transition:background .16s,color .16s,box-shadow .16s;
+}
+.rpt-tab:hover{color:var(--primary);}
+.rpt-tab.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(13,90,110,.12);}
+.rpt-pane{display:none;margin-top:16px;}
+.rpt-pane.active{display:block;}
+
+/* 日报 */
+.daily-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
+.daily-bar .field{margin:0;}
+.daily-bar .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;}
+.daily-bar input[type="date"]{font-size:14px;padding:9px 11px;border-radius:10px;min-height:40px;}
+
+.daily-stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:12px;margin-bottom:16px;
+}
+.ds-card{
+  border:1.5px solid var(--line);border-radius:14px;padding:13px 15px;background:#fff;
+  display:flex;flex-direction:column;gap:4px;
+}
+.ds-card .ds-label{font-size:12.5px;color:var(--muted);letter-spacing:.02em;}
+.ds-card .ds-value{font-size:24px;font-weight:700;line-height:1.15;color:var(--text);}
+.ds-card .ds-value .ds-unit{font-size:13px;font-weight:600;color:var(--muted);margin-left:2px;}
+.ds-card.ds-done{border-color:#b6e6c8;background:#f4fcf7;}
+.ds-card.ds-done .ds-value{color:#0f9d58;}
+.ds-card.ds-undone{border-color:#f3d7a4;background:#fffaf1;}
+.ds-card.ds-undone .ds-value{color:#d98207;}
+.ds-card.ds-over{border-color:#f5c2c0;background:#fff6f5;}
+.ds-card.ds-over .ds-value{color:#d94b40;}
+.ds-card.ds-rate{border-color:#c5eaf3;background:#f5fbfd;}
+.ds-card.ds-rate .ds-value{color:var(--primary);}
+.ds-bar{margin-top:6px;height:6px;border-radius:99px;background:#e8f0f4;overflow:hidden;}
+.ds-bar > i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#4fc3d9,#0d8fa8);}
+
+.daily-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.daily-col{border:1.5px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;}
+.dc-head{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 14px;font-size:14px;font-weight:650;
+  border-bottom:1px solid #eef4f7;
+}
+.dc-head .dc-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+.dc-head.dc-done .dc-dot{background:#0f9d58;}
+.dc-head.dc-undone .dc-dot{background:#d98207;}
+.dc-head .dc-num{
+  margin-left:auto;background:#eef4f7;color:#41566a;
+  font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;
+}
+.dc-body{max-height:320px;overflow:auto;padding:8px;}
+.d-item{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:9px 10px;border-radius:10px;font-size:13.5px;line-height:1.5;
+}
+.d-item + .d-item{margin-top:2px;}
+.d-item:hover{background:#f5fbfd;}
+.d-item .d-chk{
+  flex:0 0 auto;width:17px;height:17px;border-radius:5px;margin-top:2px;
+  border:1.8px solid #c8dbe3;background:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+}
+.d-item .d-chk.on{background:#0f9d58;border-color:#0f9d58;}
+.d-item .d-chk svg{width:11px;height:11px;color:#fff;opacity:0;}
+.d-item .d-chk.on svg{opacity:1;}
+.d-item .d-main{flex:1;min-width:0;}
+.d-item .d-title{word-break:break-word;color:var(--text);}
+.d-item.done .d-title{color:#7b8f9a;}
+.d-item .d-meta{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;
+  font-size:11.5px;color:var(--muted);align-items:center;
+}
+.d-item .d-meta .d-danger{color:#d94b40;font-weight:650;}
+.d-item .d-node{
+  padding:1px 7px;border-radius:7px;font-size:11px;font-weight:600;
+  background:#eef4f7;color:#41566a;
+}
+.d-empty{padding:22px 12px;text-align:center;color:var(--muted);font-size:13px;}
+
+@media (max-width:860px){
+  .daily-cols{grid-template-columns:1fr;}
+  .daily-bar .field{flex:1 1 100%;}
+}
+
 /* 知识库 */
 .kb-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
 .kb-tools .field{min-width:160px;}
@@ -768,7 +860,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     </button>
     <button class="sidenav-item" data-tab="m-report">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>
-      周报
+      日报周报
     </button>
     <button class="sidenav-item" data-tab="m-kb">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -1039,14 +1131,62 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
         </div>
       </section>
 
-      <!-- ====== 周报 ====== -->
+      <!-- ====== 日报周报 ====== -->
       <section class="panel" id="m-report">
         <div class="module">
           <div class="mod-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>
-            周报
+            日报周报
           </div>
-          <div class="mod-sub">按任务里的「项目 / 业务板块」自动汇总，一键生成「项目 → 板块 → 条目 + 下周待办」格式周报。添加任务时填好项目与板块即可。</div>
+          <div class="mod-sub">日报按天盘点「已完成 / 未完成」；周报按「项目 → 板块 → 条目 + 下周待办」自动汇总。两者都可直接微调后复制。</div>
+
+          <div class="rpt-tabs">
+            <button type="button" class="rpt-tab active" data-rtab="daily">日报</button>
+            <button type="button" class="rpt-tab" data-rtab="weekly">周报</button>
+          </div>
+
+          <!-- ---------- 日报 ---------- -->
+          <div class="rpt-pane active" id="rpt-daily">
+            <div class="daily-bar">
+              <div class="field" style="flex:0 0 165px;">
+                <label>日期</label>
+                <input type="date" id="dailyDate" />
+              </div>
+              <button class="btn primary" id="dailyGenBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+                生成日报
+              </button>
+              <button class="btn" id="dailyCopyBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                复制文本
+              </button>
+              <button class="btn ghost" id="dailyTodayBtn">回到今天</button>
+            </div>
+
+            <div class="daily-stats" id="dailyStats"></div>
+
+            <div class="daily-cols">
+              <div class="daily-col">
+                <div class="dc-head dc-done">
+                  <span class="dc-dot"></span>已完成
+                  <span class="dc-num" id="dailyDoneCount">0</span>
+                </div>
+                <div class="dc-body" id="dailyDoneList"></div>
+              </div>
+              <div class="daily-col">
+                <div class="dc-head dc-undone">
+                  <span class="dc-dot"></span>未完成 / 待跟进
+                  <span class="dc-num" id="dailyUndoneCount">0</span>
+                </div>
+                <div class="dc-body" id="dailyUndoneList"></div>
+              </div>
+            </div>
+
+            <textarea id="dailyText" placeholder="点击「生成日报」按钮，或切换日期后自动生成。&#10;&#10;生成后可在此微调内容，再点复制。"></textarea>
+          </div>
+
+          <!-- ---------- 周报 ---------- -->
+          <div class="rpt-pane" id="rpt-weekly">
       <div class="report-out">
         <div class="wr-proj-row">
           <label>周报主标题（项目名）</label>
@@ -1063,6 +1203,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
               </button>
             </div>
             <textarea id="reportText" placeholder="点击「生成本周周报」按钮，系统将自动汇总本周任务并生成格式化文本。&#10;&#10;生成后可在此微调内容，再点复制。"></textarea>
+          </div>
           </div>
         </div>
       </section>
@@ -2645,6 +2786,169 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     });
   }
 
+  /* ---------- 日报（按天盘点 已完成 / 未完成）---------- */
+  var WD = ["日","一","二","三","四","五","六"];
+
+  function dailyDateStr(){
+    var el = $("#dailyDate");
+    var v = el && el.value ? el.value : "";
+    return v || todayStr();
+  }
+  
+  // 是否在该日完成：优先 doneAt，老数据无 doneAt 时回退 due
+  function isDoneOn(x, date){
+    if(x.status !== "done") return false;
+    return x.doneAt ? (x.doneAt === date) : ((x.due || "") === date);
+  }
+  // 未完成：已到开始日(pere) 且（已过截止 / 进行中）
+  function dailyCollect(date){
+    var tasks = lsGet("tasks", []) || [];
+    var done = [], undone = [];
+    tasks.forEach(function(x){
+      if(isDoneOn(x, date)){ done.push(x); return; }
+      if(x.status === "done" || x.status === "paused") return;
+      if(x.pre && x.pre > date) return;              // 还没开始
+      if((x.due && x.due <= date) || x.status === "in_progress") undone.push(x);
+    });
+    undone.sort(function(a,b){
+      var da = a.due || "9999-12-31", db = b.due || "9999-12-31";
+      if(da !== db) return da < db ? -1 : 1;
+      return (a.pre || "") < (b.pre || "") ? -1 : 1;
+    });
+    done.sort(function(a,b){
+      var ka = a.doneAt || a.due || "", kb = b.doneAt || b.due || "";
+      return kb < ka ? -1 : 1;
+    });
+    return { done: done, undone: undone };
+  }
+  function dailyBoardOf(x){ return ((x.board||"").trim()) || ((x.cat||"").trim()) || "其他"; }
+
+  function dailyItemHtml(x, date, isDone){
+    var meta = [];
+    if(isDone){
+      meta.push("<span>" + escapeHtml((x.doneAt || x.due || date)) + " 完成</span>");
+    } else if(x.due){
+      if(x.due < date) meta.push('<span class="d-danger">逾期 ' + daysBetween(x.due, date) + " 天（截止 " + escapeHtml(x.due) + "）</span>");
+      else if(x.due === date) meta.push("<span>今日截止</span>");
+      else meta.push("<span>截止 " + escapeHtml(x.due) + "</span>");
+    } else {
+      meta.push("<span>无截止日</span>");
+    }
+    if(!isDone){
+      if(x.status === "in_progress") meta.push("<span>进行中</span>");
+      else if(x.status === "not_started") meta.push("<span>未开始</span>");
+    }
+    if(x.cat) meta.push("<span>" + escapeHtml(x.cat) + "</span>");
+    if(x.node) meta.push('<span class="d-node">' + escapeHtml(x.node) + "</span>");
+    if(x.board) meta.push("<span>" + escapeHtml(x.board) + "</span>");
+    return '<div class="d-item' + (isDone ? " done" : "") + '">'
+      + '<button type="button" class="d-chk' + (isDone ? " on" : "") + '" data-dtoggle="' + x.id + '" title="' + (isDone ? "点我标记为未完成" : "点我标记完成") + '">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>'
+      + '<div class="d-main"><div class="d-title">' + escapeHtml(x.title) + "</div>"
+      + (meta.length ? '<div class="d-meta">' + meta.join("") + "</div>" : "")
+      + "</div></div>";
+  }
+
+  function genDailyText(){
+    var date = dailyDateStr();
+    var c = dailyCollect(date);
+    var wd = WD[parseDate(date).getDay()];
+    var lines = [];
+    lines.push("【工作日报 " + date + " 周" + wd + "】");
+    lines.push("");
+    lines.push("一、今日完成（" + c.done.length + "）");
+    if(c.done.length === 0){ lines.push("  （暂无）"); }
+    else {
+      var order = [], groups = {};
+      c.done.forEach(function(x){
+        var b = dailyBoardOf(x);
+        if(!groups[b]){ groups[b] = []; order.push(b); }
+        groups[b].push(x);
+      });
+      var n = 0;
+      order.forEach(function(b){
+        lines.push("  " + b + "：");
+        groups[b].forEach(function(x){ n++; lines.push("  " + n + ". " + x.title); });
+      });
+    }
+    lines.push("");
+    lines.push("二、未完成 / 待跟进（" + c.undone.length + "）");
+    if(c.undone.length === 0){ lines.push("  （暂无）"); }
+    else {
+      c.undone.forEach(function(x, i){
+        var tail = "";
+        if(x.due && x.due < date) tail = "（逾期 " + daysBetween(x.due, date) + " 天，截止 " + x.due + "）";
+        else if(x.due === date) tail = "（今日截止）";
+        else if(x.due) tail = "（截止 " + x.due + "）";
+        else tail = "（无截止日）";
+        if(x.status === "in_progress") tail += " [进行中]";
+        lines.push("  " + (i + 1) + ". " + x.title + tail);
+      });
+    }
+    var ta = $("#dailyText");
+    if(ta) ta.value = lines.join("\n");
+    return c;
+  }
+
+  function renderDaily(){
+    if(!$("#rpt-daily")) return;
+    var date = dailyDateStr();
+    var c = genDailyText();
+    var overdue = c.undone.filter(function(x){ return x.due && x.due < date; });
+    var todayDue = c.undone.filter(function(x){ return x.due === date; });
+    var total = c.done.length + c.undone.length;
+    var rate = total ? Math.round(c.done.length / total * 100) : 0;
+
+    var wd = WD[parseDate(date).getDay()];
+    var isToday = (date === todayStr());
+    $("#dailyStats").innerHTML =
+        '<div class="ds-card ds-done"><div class="ds-label">已完成</div><div class="ds-value">' + c.done.length + '<span class="ds-unit">件</span></div></div>'
+      + '<div class="ds-card ds-undone"><div class="ds-label">未完成（含今日截止 ' + todayDue.length + '）</div><div class="ds-value">' + c.undone.length + '<span class="ds-unit">件</span></div></div>'
+      + '<div class="ds-card ds-over"><div class="ds-label">其中逾期顺延</div><div class="ds-value">' + overdue.length + '<span class="ds-unit">件</span></div></div>'
+      + '<div class="ds-card ds-rate"><div class="ds-label">' + (isToday ? "今日" : (date + " 周" + wd)) + '完成率</div>'
+      + '<div class="ds-value">' + rate + '<span class="ds-unit">%</span></div><div class="ds-bar"><i style="width:' + rate + '%"></i></div></div>';
+
+    var dl = $("#dailyDoneList"), ul = $("#dailyUndoneList");
+    dl.innerHTML = c.done.length
+      ? c.done.map(function(x){ return dailyItemHtml(x, date, true); }).join("")
+      : '<div class="d-empty">这一天还没有完成的任务</div>';
+    ul.innerHTML = c.undone.length
+      ? c.undone.map(function(x){ return dailyItemHtml(x, date, false); }).join("")
+      : '<div class="d-empty">没有未完成事项，节奏很稳</div>';
+    $("#dailyDoneCount").textContent = c.done.length;
+    $("#dailyUndoneCount").textContent = c.undone.length;
+
+    // 勾选：切换完成状态（事件里改数据，再统一刷新，渲染函数之间不互调）
+    $$("#rpt-daily .d-chk").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-dtoggle");
+        var list = lsGet("tasks", []);
+        var hit = null;
+        list = list.map(function(x){
+          if(x.id !== id) return x;
+          if(x.status === "done"){ x.status = "not_started"; x.doneAt = null; }
+          else { x.status = "done"; x.doneAt = dailyDateStr(); }
+          hit = x; return x;
+        });
+        if(!hit) return;
+        lsSet("tasks", list);
+        renderDaily();
+        renderTasks();
+        renderToday();
+      });
+    });
+  }
+  function copyDaily(){
+    var ta = $("#dailyText");
+    if(!ta || !ta.value){ alert("请先生成日报内容"); return; }
+    ta.select();
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(ta.value).then(function(){ alert("日报已复制"); }, function(){ document.execCommand("copy"); alert("日报已复制"); });
+      } else { document.execCommand("copy"); alert("日报已复制"); }
+    }catch(e){ document.execCommand("copy"); alert("日报已复制"); }
+  }
+
   /* ---------- 周报（按 项目 → 板块 → 条目 + 下周待办 自动汇总）---------- */
   function genReport(){
     var tasks = lsGet("tasks", []);
@@ -2890,7 +3194,22 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $$(".panel").forEach(function(p){
       p.classList.toggle("active", p.id === tab);
     });
-    if(tab === "m-report") genReport();
+    if(tab === "m-report") refreshReportPane();
+  }
+  // 日报 / 周报 子页签
+  function switchRptTab(which){
+    $$(".rpt-tab").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-rtab") === which);
+    });
+    $$(".rpt-pane").forEach(function(p){
+      p.classList.toggle("active", p.id === "rpt-" + which);
+    });
+    refreshReportPane();
+  }
+  function refreshReportPane(){
+    var t = document.querySelector(".rpt-tab.active");
+    var which = t ? t.getAttribute("data-rtab") : "daily";
+    if(which === "daily") renderDaily(); else genReport();
   }
 
   /* ---------- 渲染全部 ---------- */
@@ -2920,6 +3239,22 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     // 周报
     $("#reportGenBtn").addEventListener("click", genReport);
     $("#copyReportBtn").addEventListener("click", copyReport);
+    // 日报
+    var ddEl = $("#dailyDate");
+    if(ddEl){
+      ddEl.value = todayStr();
+      ddEl.addEventListener("change", function(){ renderDaily(); });
+    }
+    $("#dailyGenBtn").addEventListener("click", function(){ renderDaily(); });
+    $("#dailyCopyBtn").addEventListener("click", copyDaily);
+    $("#dailyTodayBtn").addEventListener("click", function(){
+      if(ddEl) ddEl.value = todayStr();
+      renderDaily();
+    });
+    // 日报 / 周报 子页签
+    $$(".rpt-tab").forEach(function(b){
+      b.addEventListener("click", function(){ switchRptTab(b.getAttribute("data-rtab")); });
+    });
     // 任务
     setupFormToggle();
     setupCustomCat();
