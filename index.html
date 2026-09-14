@@ -931,6 +931,9 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             <select id="filterNode" class="tf-sel" title="按节点标签筛选" data-page-node-id="IxYKADGCGdmM6sRs0XHEI5">
               <option value="" data-page-node-id="essrnYIH7KqmvX6PGuH2Ng">全部节点</option>
             </select>
+            <select id="filterOwner" class="tf-sel" title="按跟进人筛选">
+              <option value="">全部跟进人</option>
+            </select>
             <button type="button" class="tf-clear" id="filterClear" data-page-node-id="4eTa81RZXB8yhiFAdCZZRE">重置筛选</button>
             <button type="button" class="tf-share" id="weekShareBtn" title="把当前周任务生成分享图" data-page-node-id="0OwGGekvx7wGGNpS2mHPWO">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="crSeWw3zI6U8RYRU0ZQj23"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v14" data-page-node-id="gsNBuzoIJ45kJLa2XFCnt6"/></svg>
@@ -1687,6 +1690,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       var c = (x.cat||"").trim(); if(c && cats.indexOf(c) === -1) cats.push(c);
     });
     fillSelKeep($("#filterCat"), cats, "全部类别");
+    var owners = [];
+    tasks.forEach(function(x){
+      var o = (x.owner||"").trim(); if(o && owners.indexOf(o) === -1) owners.push(o);
+    });
+    fillSelKeep($("#filterOwner"), owners, "全部跟进人");
     refreshNodeSelects();   // 节点下拉：内置 5 项 + 自定义项
   }
 
@@ -1710,15 +1718,17 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var kw = ($("#taskSearch") ? $("#taskSearch").value : "").trim().toLowerCase();
     if(kw){
       tasks = tasks.filter(function(x){
-        var hay = (x.title+" "+(x.cat||"")+" "+(x.note||"")+" "+(x.project||"")+" "+(x.board||"")).toLowerCase();
+        var hay = (x.title+" "+(x.cat||"")+" "+(x.note||"")+" "+(x.project||"")+" "+(x.board||"")+" "+(x.owner||"")).toLowerCase();
         return hay.indexOf(kw) !== -1;
       });
     }
 
     var fc = ($("#filterCat") ? $("#filterCat").value : "") || "";
     var fnd = ($("#filterNode") ? $("#filterNode").value : "") || "";
+    var fo = ($("#filterOwner") ? $("#filterOwner").value : "") || "";
     if(fc){ tasks = tasks.filter(function(x){ return (x.cat||"") === fc; }); }
     if(fnd){ tasks = tasks.filter(function(x){ return ((x.node||"").trim()) === fnd; }); }
+    if(fo){ tasks = tasks.filter(function(x){ return ((x.owner||"").trim()) === fo; }); }
 
     var fwEl = $("#filterWeek");
     var fw = (fwEl && fwEl.value !== "") ? fwEl.value : null;
@@ -1726,7 +1736,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     if(range){
       tasks = tasks.filter(function(x){ return x.due && x.due >= range.startStr && x.due <= range.endStr; });
     }
-    return { tasks: tasks, kw: kw, cat: fc, node: fnd, range: range, weekOffset: (fw !== null ? (parseInt(fw,10)||0) : null) };
+    return { tasks: tasks, kw: kw, cat: fc, node: fnd, owner: fo, range: range, weekOffset: (fw !== null ? (parseInt(fw,10)||0) : null) };
   }
 
   function renderTasks(){
@@ -1736,7 +1746,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     var f = getFilteredTasks();
     var allTasks = f.tasks;
     var kw = f.kw;
-    var activeFilter = !!(f.cat || f.node || f.range);
+    var activeFilter = !!(f.cat || f.node || f.owner || f.range);
 
     var cntEl = $("#filterCount");
     if(cntEl){ cntEl.textContent = activeFilter ? ("筛选出 " + allTasks.length + " 条") : ""; }
@@ -3268,14 +3278,16 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     $("#taskSearch").addEventListener("input", function(){ renderTasks(); if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks(); });
 
     /* 周次 / 项目 / 板块 筛选 + 周任务分享图 */
-    var fwEl = $("#filterWeek"), fcatEl = $("#filterCat"), fnEl = $("#filterNode"), fcEl = $("#filterClear");
+    var fwEl = $("#filterWeek"), fcatEl = $("#filterCat"), fnEl = $("#filterNode"), fownerEl = $("#filterOwner"), fcEl = $("#filterClear");
     if(fwEl) fwEl.addEventListener("change", function(){ renderTasks(); });
     if(fcatEl) fcatEl.addEventListener("change", function(){ renderTasks(); });
     if(fnEl) fnEl.addEventListener("change", function(){ renderTasks(); });
+    if(fownerEl) fownerEl.addEventListener("change", function(){ renderTasks(); });
     if(fcEl) fcEl.addEventListener("click", function(){
       if(fwEl) fwEl.value = "";
       if(fcatEl) fcatEl.value = "";
       if(fnEl) fnEl.value = "";
+      if(fownerEl) fownerEl.value = "";
       var s = $("#taskSearch"); if(s) s.value = "";
       renderTasks();
       if($("#calView") && $("#calView").classList.contains("active")) renderCalDayTasks();
