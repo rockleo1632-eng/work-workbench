@@ -247,6 +247,20 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 .cat-header .count{margin-left:auto;font-size:12px;font-weight:400;opacity:.7;}
 .cat-section .list{margin-top:0;}
 
+/* 节点分组（节点作为一级分类展示依据） */
+.node-section{margin-bottom:20px;border-left:3px solid #e2e8f0;padding-left:4px;}
+.node-header{
+  display:flex;align-items:center;gap:9px;padding:9px 14px;margin-bottom:11px;
+  border-radius:11px;font-size:14px;font-weight:700;letter-spacing:.3px;
+}
+.node-header .dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px;}
+.node-header .count{margin-left:auto;font-size:12px;font-weight:400;opacity:.7;}
+.node-section .list{margin-top:0;}
+/* 节点组内按类别（任务类型）再分 */
+.cat-sub{display:flex;align-items:center;gap:8px;padding:6px 12px;margin:12px 0 8px;border-radius:9px;font-size:12.5px;font-weight:700;color:#475569;}
+.cat-sub .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;}
+.cat-sub .count{margin-left:auto;font-size:11.5px;font-weight:400;opacity:.7;}
+
 /* 列表卡片 */
 .list{display:flex;flex-direction:column;gap:10px;}
 .card{
@@ -907,7 +921,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="YWjiEb8ybh3Ui1df7cAdOS"><path d="M9 11l3 3L22 4" data-page-node-id="OmJGjEgevlvZ0jCHDVCboA"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" data-page-node-id="CALhBTVXUNIyydoN1DX1BL"/></svg>
             任务管理
           </div>
-          <div class="mod-sub" data-page-node-id="BsBQNcKhiCTcDezAsWiQ29">按类别标签分类（素材 / 事件 / 传播 / 专项），支持自定义类别；含前置节点与截止日期，逾期自动滚到顶部。</div>
+          <div class="mod-sub" data-page-node-id="BsBQNcKhiCTcDezAsWiQ29">默认按「节点→类别（任务类型）」分组展示，可在上方「分组方式」切换；含前置节点与截止日期，逾期自动滚到顶部。</div>
 
           <!-- 搜索栏 -->
           <div class="task-search" data-page-node-id="EhwKhyU2i4ONbBwc8vJJSx">
@@ -933,6 +947,11 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
             </select>
             <select id="filterOwner" class="tf-sel" title="按跟进人筛选">
               <option value="">全部跟进人</option>
+            </select>
+            <select id="groupBy" class="tf-sel" title="任务列表分组方式">
+              <option value="node_cat">按节点→类别</option>
+              <option value="node">按节点</option>
+              <option value="cat">按类别</option>
             </select>
             <button type="button" class="tf-clear" id="filterClear" data-page-node-id="4eTa81RZXB8yhiFAdCZZRE">重置筛选</button>
             <button type="button" class="tf-share" id="weekShareBtn" title="把当前周任务生成分享图" data-page-node-id="0OwGGekvx7wGGNpS2mHPWO">
@@ -1739,6 +1758,65 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
     return { tasks: tasks, kw: kw, cat: fc, node: fnd, owner: fo, range: range, weekOffset: (fw !== null ? (parseInt(fw,10)||0) : null) };
   }
 
+  /* 生成一组任务卡片的 HTML（分组区块内复用） */
+  function taskCardsHtml(items){
+    var t = todayStr();
+    var html = "";
+    items.forEach(function(x){
+      var overdue = (x.status!=="done" && x.status!=="paused" && x.due && x.due < t);
+      var dueTxt = x.due ? ("截止 "+fmtDate(x.due)+(overdue?' <span class="due-over">已逾期</span>':'')) : "无截止";
+      var preTxt = x.pre ? ("前置 "+fmtDate(x.pre)) : "";
+      var statusTxt = STATUS_MAP[x.status] ? STATUS_MAP[x.status].label : "未开始";
+
+      html += '<div class="card" data-id="'+x.id+'">'
+        + '<div class="c-main">'
+        + '<div class="c-title'+(x.status==="done"?" done":"")+'">'+escapeHtml(x.title)+'</div>'
+        + '<div class="c-meta">'
+        + '<span class="status-pill st-'+x.status+'">'+statusTxt+'</span>'
+        + (preTxt ? '<span>'+preTxt+'</span>' : '')
+        + '<span>'+dueTxt+'</span>'
+        + (x.note ? '<span>&#128221; '+escapeHtml(x.note)+'</span>' : '')
+        + (x.node ? '<span class="t-node" style="color:'+(NODE_DOT[x.node]||"#0891b2")+';background:'+(NODE_DOT[x.node]||"#0891b2")+'14;border:1px solid '+(NODE_DOT[x.node]||"#0891b2")+'33;">'+escapeHtml(x.node)+'</span>' : '')
+        + (x.project ? '<span class="t-prj">'+escapeHtml(x.project)+'</span>' : '')
+        + (x.board ? '<span class="t-board">'+escapeHtml(x.board)+'</span>' : '')
+        + '</div>'
+        /* 就地编辑区域（默认隐藏）*/
+        + '<div class="inline-edit" id="ie-'+x.id+'">'
+        + '<div class="ie-row">'
+        + '<div class="field" style="flex:2;"><label>标题</label><input type="text" id="iet-'+x.id+'" value="'+escapeHtml(x.title)+'"></div>'
+        + '<div class="field" style="flex:0 0 104px;"><label>类别</label><select id="iec-'+x.id+'">';
+      DEFAULT_CATS.forEach(function(c){
+        html += '<option value="'+c+'"'+(x.cat===c?' selected':'')+'>'+c+'</option>';
+      });
+      html += '<option value="__other__"'+(DEFAULT_CATS.indexOf(x.cat)===-1?' selected':'')+'>其他</option>';
+      html += '</select></div>'
+        + '<div class="field" style="flex:0 0 132px;"><label>节点</label><select id="ien2-'+x.id+'">'
+        + nodeOptionsHtml(x.node || (x.cat === "专项" ? "公测定档" : "首曝启宣"), "")
+        + '</select></div>'
+        + '</div>'
+        + '<div class="ie-row">'
+        + '<div class="field" style="flex:0 0 140px;"><label>前置节点</label><input type="date" id="iep-'+x.id+'" value="'+(x.pre||'')+'"></div>'
+        + '<div class="field" style="flex:0 0 140px;"><label>截止日期</label><input type="date" id="ied-'+x.id+'" value="'+(x.due||'')+'"></div>'
+        + '<div class="field" style="flex:2;"><label>备注</label><input type="text" id="ien-'+x.id+'" value="'+escapeHtml(x.note||'')+'" placeholder="可选"></div>'
+        + '</div>'
+        + '<div class="ie-row">'
+        + '<div class="field" style="flex:1;"><label>项目</label><input type="text" id="ieprj-'+x.id+'" value="'+escapeHtml(x.project||'')+'"></div>'
+        + '<div class="field" style="flex:1;"><label>板块</label><input type="text" id="ieb-'+x.id+'" value="'+escapeHtml(x.board||'')+'"></div>'
+        + '</div>'
+        + '<div class="ie-actions">'
+        + '<button class="btn primary btn-sm" data-ie-save="'+x.id+'">保存</button>'
+        + '<button class="btn ghost btn-sm" data-ie-cancel="'+x.id+'">取消</button>'
+        + '</div></div>'
+        + '</div>'
+        + '<div class="c-actions">'
+        + '<select class="status-select st-'+x.status+'" data-sid="'+x.id+'">'+statusOptionsHtml(x.status)+'</select>'
+        + '<button class="icon-btn" data-act="edit" data-id="'+x.id+'" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>'
+        + '<button class="icon-btn" data-act="del" data-id="'+x.id+'" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+        + '</div></div>';
+    });
+    return html;
+  }
+
   function renderTasks(){
     var container = $("#taskList");
     if(!container) return;
@@ -1772,86 +1850,86 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       return;
     }
 
-    /* 按类别分组（仅活跃任务；已完结单独收纳） */
-    var groups = {};
-    var doneTasks = [];
-    sorted.forEach(function(x){
-      if(x.status === "done"){ doneTasks.push(x); return; }
-      var c = x.cat || "未分类";
-      if(!groups[c]) groups[c] = [];
-      groups[c].push(x);
-    });
+    /* 分组渲染：按「分组依据」选择 类别 / 节点 / 节点→类别（节点作为一级分类展示依据） */
+    var groupByMode = ($("#groupBy") ? $("#groupBy").value : "") || "node_cat";
+    var activeItems = sorted.filter(function(x){ return x.status !== "done"; });
+    var doneTasks = sorted.filter(function(x){ return x.status === "done"; });
 
-    /* 渲染每个分类区块 */
     var html = "";
-    Object.keys(groups).forEach(function(catName){
-      var items = groups[catName];
-      var bg = CAT_BG[catName] || "#f3f4f6";
-      var dotColor = CAT_DOT[catName] || "#6b7280";
-
-      html += '<div class="cat-section">'
-        + '<div class="cat-header" style="background:'+escapeHtml(bg)+';">'
-        + '<span class="dot" style="background:'+escapeHtml(dotColor)+';"></span>'
-        + escapeHtml(catName)
-        + '<span class="count">'+items.length+' 条</span>'
-        + '</div>'
-        + '<div class="list">';
-
-      items.forEach(function(x){
-        var overdue = (x.status!=="done" && x.status!=="paused" && x.due && x.due < t);
-        var dueTxt = x.due ? ("截止 "+fmtDate(x.due)+(overdue?' <span class="due-over">已逾期</span>':'')) : "无截止";
-        var preTxt = x.pre ? ("前置 "+fmtDate(x.pre)) : "";
-        var statusTxt = STATUS_MAP[x.status] ? STATUS_MAP[x.status].label : "未开始";
-
-        html += '<div class="card" data-id="'+x.id+'">'
-          + '<div class="c-main">'
-          + '<div class="c-title'+(x.status==="done"?" done":"")+'">'+escapeHtml(x.title)+'</div>'
-          + '<div class="c-meta">'
-          + '<span class=\"status-pill st-'+x.status+'\">'+statusTxt+'</span>'
-          + (preTxt ? '<span>'+preTxt+'</span>' : '')
-          + '<span>'+dueTxt+'</span>'
-          + (x.note ? '<span>&#128221; '+escapeHtml(x.note)+'</span>' : '')
-          + (x.node ? '<span class="t-node" style="color:'+(NODE_DOT[x.node]||"#0891b2")+';background:'+(NODE_DOT[x.node]||"#0891b2")+'14;border:1px solid '+(NODE_DOT[x.node]||"#0891b2")+'33;">'+escapeHtml(x.node)+'</span>' : '')
-          + (x.project ? '<span class="t-prj">'+escapeHtml(x.project)+'</span>' : '')
-          + (x.board ? '<span class="t-board">'+escapeHtml(x.board)+'</span>' : '')
-          + '</div>'
-          /* 就地编辑区域（默认隐藏）*/
-          + '<div class="inline-edit" id="ie-'+x.id+'">'
-          + '<div class="ie-row">'
-          + '<div class="field" style="flex:2;"><label>标题</label><input type="text" id="iet-'+x.id+'" value="'+escapeHtml(x.title)+'"></div>'
-          + '<div class="field" style="flex:0 0 104px;"><label>类别</label><select id="iec-'+x.id+'">';
-        DEFAULT_CATS.forEach(function(c){
-          html += '<option value="'+c+'"'+(x.cat===c?' selected':'')+'>'+c+'</option>';
-        });
-        html += '<option value="__other__"'+(DEFAULT_CATS.indexOf(x.cat)===-1?' selected':'')+'>其他</option>';
-        html += '</select></div>'
-          + '<div class="field" style="flex:0 0 132px;"><label>节点</label><select id="ien2-'+x.id+'">'
-          + nodeOptionsHtml(x.node || (x.cat === "专项" ? "公测定档" : "首曝启宣"), "")
-          + '</select></div>'
-          + '</div>'
-          + '<div class="ie-row">'
-          + '<div class="field" style="flex:0 0 140px;"><label>前置节点</label><input type="date" id="iep-'+x.id+'" value="'+(x.pre||'')+'"></div>'
-          + '<div class="field" style="flex:0 0 140px;"><label>截止日期</label><input type="date" id="ied-'+x.id+'" value="'+(x.due||'')+'"></div>'
-          + '<div class="field" style="flex:2;"><label>备注</label><input type="text" id="ien-'+x.id+'" value="'+escapeHtml(x.note||'')+'" placeholder="可选"></div>'
-          + '</div>'
-          + '<div class="ie-row">'
-          + '<div class="field" style="flex:1;"><label>项目</label><input type="text" id="ieprj-'+x.id+'" value="'+escapeHtml(x.project||'')+'"></div>'
-          + '<div class="field" style="flex:1;"><label>板块</label><input type="text" id="ieb-'+x.id+'" value="'+escapeHtml(x.board||'')+'"></div>'
-          + '</div>'
-          + '<div class="ie-actions">'
-          + '<button class="btn primary btn-sm" data-ie-save="'+x.id+'">保存</button>'
-          + '<button class="btn ghost btn-sm" data-ie-cancel="'+x.id+'">取消</button>'
-          + '</div></div>'
-          + '</div>'
-          + '<div class="c-actions">'
-          + '<select class="status-select st-'+x.status+'" data-sid="'+x.id+'">'+statusOptionsHtml(x.status)+'</select>'
-          + '<button class="icon-btn" data-act="edit" data-id="'+x.id+'" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>'
-          + '<button class="icon-btn" data-act="del" data-id="'+x.id+'" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
-          + '</div></div>';
+    if(groupByMode === "cat"){
+      /* —— 按类别分组（原逻辑） —— */
+      var catGroups = {};
+      activeItems.forEach(function(x){
+        var c = x.cat || "未分类";
+        if(!catGroups[c]) catGroups[c] = [];
+        catGroups[c].push(x);
       });
-
-      html += '</div></div>'; /* close list + cat-section */
-    });
+      Object.keys(catGroups).forEach(function(catName){
+        var items = catGroups[catName];
+        var bg = CAT_BG[catName] || "#f3f4f6";
+        var dotColor = CAT_DOT[catName] || "#6b7280";
+        html += '<div class="cat-section">'
+          + '<div class="cat-header" style="background:'+escapeHtml(bg)+';">'
+          + '<span class="dot" style="background:'+escapeHtml(dotColor)+';"></span>'
+          + escapeHtml(catName)
+          + '<span class="count">'+items.length+' 条</span>'
+          + '</div>'
+          + '<div class="list">';
+        html += taskCardsHtml(items);
+        html += '</div></div>';
+      });
+    } else {
+      /* —— 按节点分组（node / node_cat），节点作为一级分类，类别作为二级（任务类型）分类 —— */
+      var nodeGroups = {};
+      activeItems.forEach(function(x){
+        var n = (x.node && x.node.trim()) ? x.node.trim() : "未分节点";
+        if(!nodeGroups[n]) nodeGroups[n] = [];
+        nodeGroups[n].push(x);
+      });
+      var nodeNames = Object.keys(nodeGroups).sort(function(a,b){
+        var ia = DEFAULT_NODES.indexOf(a), ib = DEFAULT_NODES.indexOf(b);
+        if(a === "未分节点") ia = 9999; if(b === "未分节点") ib = 9999;
+        var ra = (ia === -1 ? 5000 : ia), rb = (ib === -1 ? 5000 : ib);
+        if(ra !== rb) return ra - rb;
+        return a.localeCompare(b);
+      });
+      nodeNames.forEach(function(nodeName){
+        var items = nodeGroups[nodeName];
+        var ncolor = NODE_DOT[nodeName] || "#0891b2";
+        html += '<div class="node-section">'
+          + '<div class="node-header" style="background:'+escapeHtml(ncolor)+'14;">'
+          + '<span class="dot" style="background:'+escapeHtml(ncolor)+';"></span>'
+          + escapeHtml(nodeName)
+          + '<span class="count">'+items.length+' 条</span>'
+          + '</div>';
+        if(groupByMode === "node_cat"){
+          /* 组内再按类别（任务类型）分 */
+          var subGroups = {};
+          items.forEach(function(x){
+            var c = x.cat || "未分类";
+            if(!subGroups[c]) subGroups[c] = [];
+            subGroups[c].push(x);
+          });
+          Object.keys(subGroups).forEach(function(catName){
+            var sitems = subGroups[catName];
+            var sbg = CAT_BG[catName] || "#f3f4f6";
+            var sdot = CAT_DOT[catName] || "#6b7280";
+            html += '<div class="cat-sub" style="background:'+escapeHtml(sbg)+';">'
+              + '<span class="dot" style="background:'+escapeHtml(sdot)+';"></span>'
+              + escapeHtml(catName)
+              + '<span class="count">'+sitems.length+' 条</span>'
+              + '</div><div class="list">';
+            html += taskCardsHtml(sitems);
+            html += '</div>';
+          });
+        } else {
+          html += '<div class="list">';
+          html += taskCardsHtml(items);
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+    }
 
     /* 已完结收纳（可伸缩） */
     if(typeof doneTasks !== "undefined" && doneTasks.length > 0){
