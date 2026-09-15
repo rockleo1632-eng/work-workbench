@@ -272,6 +272,9 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 .card .c-main{flex:1;min-width:0;}
 .card .c-title{font-weight:600;font-size:15px;word-break:break-word;line-height:1.4;}
 .card .c-title.done{text-decoration:line-through;color:var(--muted);}
+/* 标题里的母项（业务板块）前缀：让标题读起来与多维表格一致 */
+.c-parent{color:#7d97a3;font-weight:600;white-space:nowrap;}
+.c-parent::after{content:"·";margin:0 6px;color:#c3d4db;font-weight:700;}
 .status-select{appearance:none;-webkit-appearance:none;font:inherit;font-size:12.5px;font-weight:600;padding:6px 26px 6px 10px;border:1.5px solid #cdeef5;border-radius:20px;background:#f3fbfe url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;color:#0e7490;cursor:pointer;min-height:34px;transition:.15s;}
 .status-select:hover{border-color:#06b6d4;box-shadow:0 0 0 3px rgba(6,182,212,.12);}
 .status-select.st-notstarted{color:#64748b;border-color:#e2e8f0;background-color:#f8fafc;}
@@ -1501,6 +1504,34 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
   }
   function catLabel(cat){ return cat || "未分类"; }
 
+  /* ---------- 标题母项（多维表格里的「业务板块」父级名） ---------- */
+  // 表格里任务挂在某个母项下（如「星广联投」→「素材发布」），
+  // 工作台展示标题时把母项并进来，读起来和表格一致。
+  // 注意：只影响展示，不改动存储的数据，因此不会同步回飞书造成重复。
+  function parentName(x){
+    return String((x && x.board) || "")
+      .replace(/[\r\n\t]+/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+  function titleHasParent(x){
+    var p = parentName(x);
+    if(!p) return true;
+    return String((x && x.title) || "").indexOf(p) === 0;
+  }
+  // 纯文本标题（紧凑列表 / 分享图用）
+  function titleFull(x){
+    var t = String((x && x.title) || "");
+    if(titleHasParent(x)) return t;
+    return parentName(x) + "·" + t;
+  }
+  // HTML 标题（任务卡片用）：母项渲染成面包屑小标签
+  function titleHtml(x){
+    var t = escapeHtml((x && x.title) || "");
+    if(titleHasParent(x)) return t;
+    return '<span class="c-parent">' + escapeHtml(parentName(x)) + '</span>' + t;
+  }
+
   /* ---------- 示例数据 ---------- */
   function seedIfEmpty(){
     var tasks = lsGet("tasks", null);
@@ -1671,7 +1702,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
       var meta = overdue ? ("逾期 "+fmtDate(x.due))
                 : (x.due === t ? "今天截止" : ("还有 "+daysBetween(t,x.due)+" 天"));
       return '<div class="today-item'+(overdue?" overdue":"")+'">'
-        + '<span class="t-title"><span class="tag '+catClass(x.cat)+'">'+catLabel(x.cat)+'</span> '+escapeHtml(x.title)+'</span>'
+        + '<span class="t-title"><span class="tag '+catClass(x.cat)+'">'+catLabel(x.cat)+'</span> '+titleHtml(x)+'</span>'
         + '<span class="t-meta">'+meta+'</span>'
         + '<button class="t-done" data-done="'+x.id+'">完成</button>'
         + '</div>';
@@ -1770,7 +1801,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
 
       html += '<div class="card" data-id="'+x.id+'">'
         + '<div class="c-main">'
-        + '<div class="c-title'+(x.status==="done"?" done":"")+'">'+escapeHtml(x.title)+'</div>'
+        + '<div class="c-title'+(x.status==="done"?" done":"")+'">'+titleHtml(x)+'</div>'
         + '<div class="c-meta">'
         + '<span class="status-pill st-'+x.status+'">'+statusTxt+'</span>'
         + (preTxt ? '<span>'+preTxt+'</span>' : '')
@@ -1939,7 +1970,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
         + '<div class="done-body">';
       doneTasks.forEach(function(x){
         html += '<div class="done-item">'
-          + '<div class="di-main"><div class="c-title done">'+escapeHtml(x.title)+'</div>'
+          + '<div class="di-main"><div class="c-title done">'+titleHtml(x)+'</div>'
           + '<div class="c-meta"><span class="tag '+catClass(x.cat)+'">'+catLabel(x.cat)+'</span>'
           + (x.doneAt ? '<span>完成于 '+fmtDate(x.doneAt)+'</span>' : '')
           + '</div></div>'
@@ -2658,7 +2689,7 @@ label.check-chip:hover{border-color:#b5e5f1;background-color:#fff;}
           ctx.fillStyle = (x.status === "done") ? "#cbd5e1" : (CAT_DOT[x.cat] || "#6b7280");
           ctx.fill();
 
-          var txt = (x.status === "done" ? "✓ " : "") + x.title;
+          var txt = (x.status === "done" ? "✓ " : "") + titleFull(x);
           if(overdue) txt = "! " + txt;
           if(txt.length > 40) txt = txt.substring(0, 39) + "…";
           ctx.fillStyle = (x.status === "done") ? "#94a3b8" : (overdue ? "#dc2626" : "#1f2937");
